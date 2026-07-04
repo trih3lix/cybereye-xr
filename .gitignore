@@ -1,0 +1,26 @@
+# --- Unity ---
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]serSettings/
+MemoryCaptures/
+Recordings/
+*.csproj
+*.sln
+*.user
+*.apk
+*.aab
+
+# --- XREAL SDK (large vendored package, 550MB+) — restore per README, do not commit ---
+LocalPackages/
+
+# --- Secrets / signing — NEVER commit ---
+*.keystore
+scripts/local.properties
+
+# --- OS ---
+.DS_Store
+Thumbs.db

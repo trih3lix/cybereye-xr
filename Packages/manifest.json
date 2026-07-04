@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "com.unity.ai.inference": "2.6.1",
+    "com.unity.inputsystem": "1.19.0",
+    "com.unity.render-pipelines.universal": "17.5.0",
+    "com.unity.ugui": "2.5.0",
+    "com.unity.xr.arfoundation": "6.0.7",
+    "com.unity.xr.interaction.toolkit": "3.0.11",
+    "com.xreal.xr": "file:../LocalPackages/com.xreal.xr-src",
+    "com.unity.modules.accessibility": "1.0.0",
+    "com.unity.modules.androidjni": "1.0.0",
+    "com.unity.modules.animation": "1.0.0",
+    "com.unity.modules.assetbundle": "1.0.0",
+    "com.unity.modules.audio": "1.0.0",
+    "com.unity.modules.imageconversion": "1.0.0",
+    "com.unity.modules.imgui": "1.0.0",
+    "com.unity.modules.jsonserialize": "1.0.0",
+    "com.unity.modules.particlesystem": "1.0.0",
+    "com.unity.modules.physics": "1.0.0",
+    "com.unity.modules.screencapture": "1.0.0",
+    "com.unity.modules.ui": "1.0.0",
+    "com.unity.modules.uielements": "1.0.0",
+    "com.unity.modules.unitywebrequest": "1.0.0",
+    "com.unity.modules.unitywebrequesttexture": "1.0.0",
+    "com.unity.modules.video": "1.0.0",
+    "com.unity.modules.xr": "1.0.0"
+  }
+}
