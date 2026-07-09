@@ -1,8 +1,10 @@
 using System.Collections;
 using UnityEngine;
 
-// M1 boot + M9 disclaimer: logs environment/rig state to logcat (CYBEREYE[BOOT]), then shows a prominent
-// FICTIONAL/ENTERTAINMENT disclaimer for a few seconds before handing the HUD to the live experience.
+// M1 boot + M9 disclaimer: logs environment/rig state to logcat (CYBEREYE[BOOT]), shows a prominent
+// FICTIONAL/ENTERTAINMENT disclaimer for a few seconds, then hands the HUD its post-boot cinematic
+// (HudController.BeginPostBoot): the banner types in, holds ~2s, then glitches + fades out of the
+// center of view (R2 field report: the boot text used to block the user's vision permanently).
 // The disclaimer is required: the app overlays randomly-generated "dossier" data on real people via camera.
 public class AppBootController : MonoBehaviour
 {
@@ -18,20 +20,13 @@ public class AppBootController : MonoBehaviour
         if (cam) CyberLog.Info("BOOT", $"MainCamera={cam.name} fov={cam.fieldOfView:F0} clear={cam.clearFlags}");
         else     CyberLog.Warn("BOOT", "MainCamera=NULL (XR rig not resolved yet)");
 
-        // FICTIONAL disclaimer (ethics + store requirement).
-        if (hud)
-        {
-            hud.SetTitle("FICTIONAL // ENTERTAINMENT");
-            hud.SetStatus("ALL DOSSIER DATA IS RANDOMLY GENERATED - NOT REAL");
-        }
+        // FICTIONAL disclaimer (ethics + store requirement) — owns the center undisturbed;
+        // HudController routes any other SetStatus into the event feed until boot ends.
+        if (hud) hud.SetBootText("FICTIONAL // ENTERTAINMENT", "ALL DOSSIER DATA IS RANDOMLY GENERATED - NOT REAL");
         CyberLog.Info("BOOT", $"disclaimer shown ({disclaimerSeconds}s)");
         yield return new WaitForSeconds(disclaimerSeconds);
 
-        if (hud)
-        {
-            hud.SetTitle("NIGHT CITY OS");
-            hud.SetStatus("SYSTEMS NOMINAL");
-        }
+        if (hud) hud.BeginPostBoot();   // NIGHT CITY OS types in, SYSTEMS NOMINAL, then the center clears
         CyberLog.Info("BOOT", "boot complete");
     }
 }

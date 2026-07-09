@@ -33,6 +33,10 @@ public class AudioDirector : MonoBehaviour
         if (_scanT > 4f && c > 0) { _scanT = 0f; Play(scanSfx, "scan"); }
     }
 
+    // R2: HUD boot-cinematic hooks (scanline sweep / glitch exit). Null-safe like every Play path.
+    public void PlayScanSfx()   => Play(scanSfx, "scan(hud)");
+    public void PlayGlitchSfx() => Play(glitchSfx, "glitch(hud)");
+
     void Play(AudioClip clip, string tag)
     {
         if (clip == null || _sfx == null) return;
