@@ -119,44 +119,46 @@ public class TargetOverlay : MonoBehaviour
         var go = new GameObject("Dossier", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
         var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
         var rt = (RectTransform)go.transform;
-        rt.sizeDelta = new Vector2(760, 340);
-        rt.localScale = Vector3.one * 0.0016f;
-        rt.localPosition = new Vector3(-0.62f, -0.40f, 1.6f);
+        rt.sizeDelta = new Vector2(600, 300);
+        rt.localScale = Vector3.one * 0.0014f;
+        // Inside the One Pro's visible window (~+/-0.70m x +/-0.40m at 1.6m):
+        // panel spans x -0.66..0.18, y -0.36..0.06 — nothing clips at display edges.
+        rt.localPosition = new Vector3(-0.24f, -0.15f, 1.6f);
         rt.localRotation = Quaternion.identity;
         _dossierRoot = go.transform;
 
         // barely-there grouping fill — enough to read as a panel, not enough to wash the view
-        MkImage(go.transform, "bg", new Vector2(0, 0), new Vector2(760, 340), CyberPalette.PanelFill);
+        MkImage(go.transform, "bg", new Vector2(0, 0), new Vector2(600, 300), CyberPalette.PanelFill);
         // frame: thin bright strokes (4 strips) + a yellow header accent bar
         var frame = CyberPalette.Dim;
-        MkImage(go.transform, "bT", new Vector2(0,  168), new Vector2(760, 3), frame);
-        MkImage(go.transform, "bB", new Vector2(0, -168), new Vector2(760, 3), frame);
-        MkImage(go.transform, "bL", new Vector2(-378, 0), new Vector2(3, 340), frame);
-        MkImage(go.transform, "bR", new Vector2( 378, 0), new Vector2(3, 340), frame);
-        MkImage(go.transform, "accent", new Vector2(-290, 168), new Vector2(160, 7), CyberPalette.Yellow);
+        MkImage(go.transform, "bT", new Vector2(0,  148), new Vector2(600, 3), frame);
+        MkImage(go.transform, "bB", new Vector2(0, -148), new Vector2(600, 3), frame);
+        MkImage(go.transform, "bL", new Vector2(-298, 0), new Vector2(3, 300), frame);
+        MkImage(go.transform, "bR", new Vector2( 298, 0), new Vector2(3, 300), frame);
+        MkImage(go.transform, "accent", new Vector2(-225, 148), new Vector2(140, 6), CyberPalette.Yellow);
 
         // fixed vertical slots — title / body / footer can never overlap (the old layout stacked
         // two overflowing rects on top of each other, which is exactly the "writes over itself" bug)
-        _dTitle = MkTmp(go.transform, "title", 33, new Vector2(0, 134), new Vector2(716, 44));
+        _dTitle = MkTmp(go.transform, "title", 27, new Vector2(0, 116), new Vector2(560, 40));
         _dTitle.fontStyle = FontStyles.Bold;
         _dTitle.characterSpacing = 4f;
         _dTitle.textWrappingMode = TextWrappingModes.NoWrap;
         _dTitle.overflowMode = TextOverflowModes.Ellipsis;
 
-        _dBody = MkTmp(go.transform, "body", 26, new Vector2(0, -6), new Vector2(716, 224));
+        _dBody = MkTmp(go.transform, "body", 21, new Vector2(0, -8), new Vector2(560, 196));
         _dBody.color = CyberPalette.Cyan;
         _dBody.lineSpacing = 6f;
         _dBody.textWrappingMode = TextWrappingModes.Normal;
         _dBody.overflowMode = TextOverflowModes.Ellipsis;   // never spill outside the panel
 
-        _dFoot = MkTmp(go.transform, "foot", 20, new Vector2(0, -146), new Vector2(716, 30));
+        _dFoot = MkTmp(go.transform, "foot", 16, new Vector2(0, -128), new Vector2(560, 26));
         _dFoot.color = CyberPalette.Dim;
         _dFoot.characterSpacing = 2f;
         _dFoot.textWrappingMode = TextWrappingModes.NoWrap;
         _dFoot.overflowMode = TextOverflowModes.Ellipsis;
 
         // retarget scan sweep (hidden until used)
-        var sweepImg = MkImage(go.transform, "sweep", new Vector2(0, 160), new Vector2(748, 4), CyberPalette.Cyan);
+        var sweepImg = MkImage(go.transform, "sweep", new Vector2(0, 140), new Vector2(588, 4), CyberPalette.Cyan);
         _sweep = (RectTransform)sweepImg.transform;
         sweepImg.gameObject.SetActive(false);
 
@@ -332,7 +334,7 @@ public class TargetOverlay : MonoBehaviour
         const float dur = 0.16f;
         for (float t = 0f; t < dur; t += Time.deltaTime)
         {
-            float y = Mathf.Lerp(160f, -160f, t / dur);
+            float y = Mathf.Lerp(140f, -140f, t / dur);
             _sweep.anchoredPosition = new Vector2(0, y);
             yield return null;
         }
