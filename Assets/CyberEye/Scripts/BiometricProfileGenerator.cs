@@ -5,7 +5,7 @@ public static class BiometricProfileGenerator
     public struct Profile { public string title, name, line1, line2, stat, fact; }
 
     static readonly string[] First = { "KODA","RIVEN","NYX","JAX","MIRA","ZEV","LENA","ORION","VESPER","CASS","ECHO","DRAX","SIL","NOVA","RANE","IKO","VALA","TORU","SASHA","WREN" };
-    static readonly string[] Last  = { "VOSS","KANE","MERIDIAN","OKONKWO","SALT","VANTA","REYES","HOLLOW","KUROSAWA"," DELACROIX","GRIMM","ASH","NAKAMURA","STORM","BJORK","VEX","QUILL","MARROW","STRAND","OZ" };
+    static readonly string[] Last  = { "VOSS","KANE","MERIDIAN","OKONKWO","SALT","VANTA","REYES","HOLLOW","KUROSAWA","DELACROIX","GRIMM","ASH","NAKAMURA","STORM","BJORK","VEX","QUILL","MARROW","STRAND","OZ" };
     static readonly string[] Sectors = { "NEON HEIGHTS","SECTOR 7","THE SPRAWL","CHROME ROW","LOWTOWN","GRID 12","ASHFALL","THE STACKS","VOLTA DISTRICT","RUST QUARTER" };
     static readonly string[] Streets = { "Kessler Arcology","Trans-Am Overpass","Datcha Blocks","Neon Alley","Kowloon Spire","Faraday Lofts","Meridian Undercroft","Panopticon Plaza" };
     static readonly string[] Threat  = { "LOW","MODERATE","ELEVATED","SEVERE","BLACKLISTED" };

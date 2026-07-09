@@ -9,6 +9,7 @@ public class HudOverlayController : MonoBehaviour
     int _resizes;
     float _t;
     Material _mat;
+    Camera _cam;   // cached head camera (Camera.main); resolved once, re-acquired only while null
 
     public void SetIntensity(float v) { if (_mat != null) _mat.SetFloat("_Intensity", Mathf.Clamp01(v)); }
 
@@ -32,7 +33,8 @@ public class HudOverlayController : MonoBehaviour
 
     void SizeToFov()
     {
-        var c = Camera.main;
+        if (_cam == null) _cam = Camera.main;   // cache; refresh only while unresolved (no per-retry tag search)
+        var c = _cam;
         if (c == null || overlayQuad == null) return;
         float h = 2f * distance * Mathf.Tan(c.fieldOfView * 0.5f * Mathf.Deg2Rad) * 1.2f;
         float w = h * Mathf.Max(c.aspect, 1f);
