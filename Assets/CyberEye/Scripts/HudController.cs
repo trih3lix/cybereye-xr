@@ -69,17 +69,23 @@ public class HudController : MonoBehaviour
             var go = new GameObject("feed" + i, typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
             var t = go.GetComponent<TextMeshProUGUI>();
-            t.fontSize = 22;
-            t.alignment = TextAlignmentOptions.BottomLeft;
+            t.fontSize = 19;
+            t.alignment = TextAlignmentOptions.BottomRight;
             t.textWrappingMode = TextWrappingModes.NoWrap;
             t.overflowMode = TextOverflowModes.Ellipsis;
             t.characterSpacing = 2f;
             t.raycastTarget = false;
             t.text = "";
             var rt = (RectTransform)go.transform;
-            rt.sizeDelta = new Vector2(700, 28);
-            // stack upward from beneath the status line region
-            rt.anchoredPosition = new Vector2(0, -210 - (FeedLines - 1 - i) * 30);
+            // Pin to the canvas's bottom-right corner with edge anchors: the scene HUD
+            // canvas is only 600x400, so center-relative offsets below -200 rendered
+            // OUTSIDE the canvas — in world space right on top of the dossier panel
+            // (the "text writing over itself in the frame" report). Edge anchoring is
+            // canvas-size-proof and keeps the feed clear of the dossier's world slot.
+            rt.anchorMin = rt.anchorMax = new Vector2(1f, 0f);
+            rt.pivot = new Vector2(1f, 0f);
+            rt.sizeDelta = new Vector2(300, 24);
+            rt.anchoredPosition = new Vector2(-14, 12 + (FeedLines - 1 - i) * 26);
             _feed.Add(t);
             _born.Add(-999f);
             _basePos.Add(rt.anchoredPosition);
