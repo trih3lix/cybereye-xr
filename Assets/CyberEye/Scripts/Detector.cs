@@ -86,6 +86,7 @@ public class Detector : MonoBehaviour
             m_Transform = new TextureTransform();
             m_Ready = true;
             CyberLog.Info("DET", $"init OK model=yolov8n backend={backend} computeShaders={SystemInfo.supportsComputeShaders}");
+            _ = WarmupAsync();
         }
         catch (Exception e) { CyberLog.Err("DET", "init FAILED: " + e.Message); }
     }
@@ -128,6 +129,28 @@ public class Detector : MonoBehaviour
     }
 
     float m_BusySince, m_LastCompleted;
+
+    // Compile the ~200 GPU compute kernels at boot (during the disclaimer) with one
+    // throwaway inference on the blank input RT. Without this the FIRST live inference
+    // stalls for tens of seconds while Sentis lazily compiles shaders — which read as
+    // "no detections" in the first field session. Results are discarded (C-3: no
+    // phantom boxes).
+    async Awaitable WarmupAsync()
+    {
+        if (m_Busy || m_Worker == null) return;
+        m_Busy = true;
+        m_BusySince = Time.unscaledTime;
+        try
+        {
+            TextureConverter.ToTensor(m_InputRT, m_Input, m_Transform);
+            m_Worker.Schedule(m_Input);   // monolithic is fine pre-gameplay
+            var r = m_Worker.PeekOutput("output_0") as Tensor<float>;
+            if (r != null) { using var t = await r.ReadbackAndCloneAsync(); }
+            CyberLog.Info("DET", $"warmup complete in {Time.unscaledTime - m_BusySince:F1}s (kernels compiled)");
+        }
+        catch (Exception e) { CyberLog.Warn("DET", "warmup: " + e.Message); }
+        finally { m_Busy = false; }
+    }
 
     async Awaitable RunInferenceAsync()
     {
