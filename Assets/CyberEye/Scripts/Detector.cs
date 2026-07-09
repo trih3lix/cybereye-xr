@@ -23,6 +23,8 @@ public class Detector : MonoBehaviour
     [Range(0f, 1f)] public float iou = 0.45f;
     [Tooltip("Run inference every N rendered frames (6 @60fps ~= 10Hz).")]
     public int inferenceInterval = 6;
+    [Tooltip("GPU layers dispatched per rendered frame; the YOLO graph is amortized across frames so stereo rendering never stalls.")]
+    public int layersPerFrame = 12;
 
     const int INPUT = 640;
 
@@ -122,7 +124,20 @@ public class Detector : MonoBehaviour
             if (src == null || m_Disposed || m_Worker == null) return;   // bail if no source or torn down
             Graphics.Blit(src, m_InputRT);
             TextureConverter.ToTensor(m_InputRT, m_Input, m_Transform);   // [0,1] RGB NCHW
-            m_Worker.Schedule(m_Input);
+
+            // Spread the ~200-layer YOLO dispatch over many frames. A monolithic
+            // Schedule() monopolizes the mobile GPU for the whole network, freezing
+            // stereo rendering for ~100-300 ms every detection cycle — on-glasses this
+            // reads as "1 fps once the optics connect".
+            var layers = m_Worker.ScheduleIterable(m_Input);
+            int layerBudget = layersPerFrame;
+            while (layers.MoveNext())
+            {
+                if (--layerBudget > 0) continue;
+                layerBudget = layersPerFrame;
+                await Awaitable.NextFrameAsync();
+                if (m_Disposed || m_Worker == null) return;
+            }
 
             var boxRef   = m_Worker.PeekOutput("output_0") as Tensor<float>;
             var clsRef   = m_Worker.PeekOutput("output_1") as Tensor<int>;
