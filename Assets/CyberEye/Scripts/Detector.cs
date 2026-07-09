@@ -48,7 +48,7 @@ public class Detector : MonoBehaviour
     RenderTexture m_InputRT;
     TextureTransform m_Transform;
     int m_FrameCount, m_InferCount;
-    bool m_Busy, m_Ready;
+    bool m_Busy, m_Ready, m_Disposed;
 
     void Awake()
     {
@@ -119,7 +119,7 @@ public class Detector : MonoBehaviour
         try
         {
             var src = Source();
-            if (src == null) return;
+            if (src == null || m_Disposed || m_Worker == null) return;   // bail if no source or torn down
             Graphics.Blit(src, m_InputRT);
             TextureConverter.ToTensor(m_InputRT, m_Input, m_Transform);   // [0,1] RGB NCHW
             m_Worker.Schedule(m_Input);
@@ -129,9 +129,11 @@ public class Detector : MonoBehaviour
             var scoreRef = m_Worker.PeekOutput("output_2") as Tensor<float>;
             if (boxRef == null || clsRef == null || scoreRef == null) { CyberLog.Err("DET", "null output tensor"); return; }
 
-            using var boxes   = await boxRef.ReadbackAndCloneAsync();
-            using var classes = await clsRef.ReadbackAndCloneAsync();
-            using var scores  = await scoreRef.ReadbackAndCloneAsync();
+            // Fire-and-forget task: OnDisable can dispose the worker/tensors mid-readback, so re-check the
+            // disposed flag after every await and bail before touching native resources again.
+            using var boxes   = await boxRef.ReadbackAndCloneAsync();   if (m_Disposed) return;
+            using var classes = await clsRef.ReadbackAndCloneAsync();   if (m_Disposed) return;
+            using var scores  = await scoreRef.ReadbackAndCloneAsync(); if (m_Disposed) return;
             ParseInto(boxes, classes, scores);
         }
         catch (Exception e) { CyberLog.Err("DET", "inference error: " + e.Message); }
@@ -172,6 +174,7 @@ public class Detector : MonoBehaviour
 
     void OnDisable()
     {
+        m_Disposed = true;   // set before disposing so an in-flight RunInferenceAsync bails after its next await
         m_Worker?.Dispose(); m_Worker = null;
         m_Input?.Dispose(); m_Input = null;
         if (m_InputRT != null) { m_InputRT.Release(); m_InputRT = null; }
