@@ -5,10 +5,10 @@
 param(
   [switch]$Release,
   [string]$Scene = "",
-  [string]$Unity = "C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Unity.exe",
-  [string]$Project = "C:\Users\jslade\CyberEyeXR"
+  [string]$Unity = "C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Unity.exe"
 )
 $ErrorActionPreference = "Stop"
+$Project = Split-Path $PSScriptRoot -Parent   # repo root = scripts/..
 if (-not (Test-Path $Unity)) { Write-Output "[build] Unity not found: $Unity"; exit 4 }
 $log = Join-Path $Project "Builds\unity-build.log"
 New-Item -ItemType Directory -Force -Path (Split-Path $log) | Out-Null

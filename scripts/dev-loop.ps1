@@ -10,8 +10,9 @@ param(
   [string]$Pkg = "com.jslade.cybereye"
 )
 $ErrorActionPreference = "Stop"
-$here = Split-Path -Parent $MyInvocation.MyCommand.Path
-$apk  = if ($Release) { "C:\Users\jslade\CyberEyeXR\Builds\CyberEye-release.apk" } else { "C:\Users\jslade\CyberEyeXR\Builds\CyberEye.apk" }
+$here = $PSScriptRoot
+$Project = Split-Path $PSScriptRoot -Parent   # repo root = scripts/..
+$apk  = if ($Release) { Join-Path $Project "Builds\CyberEye-release.apk" } else { Join-Path $Project "Builds\CyberEye.apk" }
 
 Write-Output "################## BUILD ##################"
 & "$here\build.ps1" -Release:$Release -Scene $Scene

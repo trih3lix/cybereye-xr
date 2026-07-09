@@ -1,7 +1,8 @@
 # Synthesizes original cyberpunk SFX + ambiance (CC0 / our own) for CyberEye. numpy -> 16-bit mono WAV.
 import numpy as np, wave, os
 SR = 44100
-OUT = r"C:\Users\jslade\CyberEyeXR\Assets\CyberEye\Audio"
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # scripts/.. = repo root
+OUT = os.path.join(REPO, "Assets", "CyberEye", "Audio")
 os.makedirs(OUT, exist_ok=True)
 
 def save(name, sig):

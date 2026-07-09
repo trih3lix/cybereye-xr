@@ -7,11 +7,13 @@
 param(
   [string]$Serial = "",
   [string]$WifiIp = "",
-  [string]$Apk = "C:\Users\jslade\CyberEyeXR\Builds\CyberEye.apk",
+  [string]$Apk = "",
   [string]$Pkg = "com.jslade.cybereye",
   [switch]$Launch2D
 )
 $ErrorActionPreference = "Stop"
+$Project = Split-Path $PSScriptRoot -Parent   # repo root = scripts/..
+if (-not $Apk) { $Apk = Join-Path $Project "Builds\CyberEye.apk" }
 if ($WifiIp) { Write-Output "[deploy] adb connect ${WifiIp}:5555"; adb connect "${WifiIp}:5555" | Out-Null }
 $dev = @(); if ($Serial) { $dev = @("-s", $Serial) }
 
