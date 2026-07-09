@@ -44,8 +44,17 @@ public class EyeCameraFeed : MonoBehaviour
         _capturing = _cam.StartCapture();
         if (_capturing) _noFrameT = 0f;   // first Eye frame can be seconds out; don't trip the watchdog immediately
         CyberLog.Info("EYE", _capturing ? "StartCapture OK (Eye connected)" : "StartCapture FAILED (Eye not attached / busy)");
-        if (hud) hud.SetStatus(_capturing ? "OPTIC SCANNING" : "CONNECT OPTIC - XREAL EYE");
+        // Quiet re-arms: only toast the very first successful start, and failures.
+        // (Field report: watchdog restarts re-toasted "CONNECT OPTIC" in a cycle.)
+        if (hud)
+        {
+            if (_capturing && !_everStarted) hud.SetStatus("OPTIC SCANNING");
+            else if (!_capturing) hud.SetStatus("CONNECT OPTIC - XREAL EYE");
+        }
+        if (_capturing) _everStarted = true;
     }
+
+    bool _everStarted;
 
     // Guarded StopCapture: XREAL's StopCapture can throw if the session already tore the camera down
     // (backgrounded / Eye unplugged); never let that break our re-arm or teardown paths.
@@ -102,21 +111,23 @@ public class EyeCameraFeed : MonoBehaviour
         {
 #if UNITY_ANDROID && !UNITY_EDITOR
             _retryT += Time.unscaledDeltaTime;
-            if (_retryT >= 2f) { _retryT = 0f; if (Permission.HasUserAuthorizedPermission(Permission.Camera)) TryStart(); }
+            if (_retryT >= 4f) { _retryT = 0f; if (Permission.HasUserAuthorizedPermission(Permission.Camera)) TryStart(); }
 #endif
             return;
         }
 
-        // Frame-timeout watchdog. The Eye is sporadic (~1 frame / 3-5s) but a 10s gap means the session
-        // dropped the camera (backgrounded, Eye unplugged, driver stall). Drop capture so the retry loop
-        // above re-arms it; clear _gotFrame so PreviewTex goes null and the detector idles meanwhile.
+        // Frame-timeout watchdog. The Eye is sporadic — field logs show healthy rates
+        // as low as 0.1 frames/s (one frame per 10s), so the old 10s threshold tore
+        // down a WORKING camera in a cycle: StopCapture -> StartCapture reopen is the
+        // heavyweight hitch users felt as periodic chop, and each cycle re-toasted
+        // "CONNECT OPTIC". 30s means a real stall (unplug, session drop, driver hang).
         _noFrameT += Time.unscaledDeltaTime;
-        if (_noFrameT >= 10f)
+        if (_noFrameT >= 30f)
         {
-            CyberLog.Warn("EYE", "no Eye frames for 10s -> dropping capture to re-arm");
+            CyberLog.Warn("EYE", "no Eye frames for 30s -> dropping capture to re-arm");
             StopCaptureSafe();
             _capturing = false; _gotFrame = false; _noFrameT = 0f;
-            if (hud) hud.SetStatus("CONNECT OPTIC - XREAL EYE");
+            // no HUD toast here: the re-arm usually succeeds silently; TryStart toasts on failure
             return;
         }
 

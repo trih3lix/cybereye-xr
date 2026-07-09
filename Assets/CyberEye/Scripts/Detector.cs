@@ -44,6 +44,7 @@ public class Detector : MonoBehaviour
     readonly List<Detection> m_Results = new();
     public IReadOnlyList<Detection> Detections => m_Results;
     public int InferenceId => m_InferCount;   // increments each completed inference (for the tracker)
+    public Texture UiSource => Source();          // current feed for UI snapshots (thumbnail crops)
 
     Worker m_Worker;
     Tensor<float> m_Input;

@@ -68,7 +68,7 @@ Shader "CyberEye/TargetBox"
                 float ed = min(e.x, e.y);            // distance to nearest edge
 
                 // Locked = tighter, thinner, steadier. Acquiring = loose, breathing.
-                float th = lerp(0.045, 0.028, _Lock);          // border thickness
+                float th = lerp(0.034, 0.022, _Lock);          // border thickness (R3: slimmer)
                 float L  = lerp(0.34, 0.18, _Lock);            // corner-bracket length
                 float pulse = lerp(0.45 + 0.55 * sin(t * 7.0), // acquiring: fast breathe
                                    0.85 + 0.15 * sin(t * 2.0), // locked: near-steady

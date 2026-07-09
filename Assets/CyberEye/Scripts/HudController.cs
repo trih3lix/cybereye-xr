@@ -94,9 +94,21 @@ public class HudController : MonoBehaviour
     public void SetBootText(string t, string s)
     {
         if (title) title.text = t;
-        if (status) status.text = "> " + s;
+        if (status)
+        {
+            // The disclaimer is the longest line the status field ever shows; at the
+            // scene's font 34 with overflow it clipped both ends off-screen (field
+            // report). Shrink + wrap for boot text; BeginPostBoot restores the size.
+            _statusBootFontSize = status.fontSize;
+            status.fontSize = 20;
+            status.horizontalOverflow = HorizontalWrapMode.Wrap;
+            status.verticalOverflow = VerticalWrapMode.Overflow;
+            status.text = "> " + s;
+        }
         CyberLog.Info("HUD", $"boot text: {t} / {s}");
     }
+
+    int _statusBootFontSize = 34;
 
     // Boot-complete cinematic: type the OS title in, sweep, hold, then clear the center.
     public void BeginPostBoot()
@@ -112,6 +124,10 @@ public class HudController : MonoBehaviour
         var tRt = (RectTransform)title.transform;
         var sRt = (RectTransform)status.transform;
         Vector2 tHome = tRt.anchoredPosition, sHome = sRt.anchoredPosition;
+
+        // restore the status field from the disclaimer's shrunken wrap mode
+        status.fontSize = _statusBootFontSize;
+        status.horizontalOverflow = HorizontalWrapMode.Overflow;
 
         // 1) type the OS title char-by-char with a block cursor + occasional 2-frame jitter
         const string osName = "NIGHT CITY OS";
@@ -275,7 +291,7 @@ public class HudController : MonoBehaviour
             var go = new GameObject("feed" + i, typeof(TextMeshProUGUI));
             go.transform.SetParent(parent, false);
             var t = go.GetComponent<TextMeshProUGUI>();
-            t.fontSize = 19;
+            t.fontSize = 16;
             t.alignment = TextAlignmentOptions.BottomRight;
             t.textWrappingMode = TextWrappingModes.NoWrap;
             t.overflowMode = TextOverflowModes.Ellipsis;

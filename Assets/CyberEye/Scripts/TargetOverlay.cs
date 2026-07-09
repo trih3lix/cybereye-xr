@@ -36,6 +36,8 @@ public class TargetOverlay : MonoBehaviour
 
     // dossier panel (TMP)
     TMP_Text _dTitle, _dBody, _dFoot;
+    RawImage _thumb;                 // last-lock snapshot of the target (field request)
+    RenderTexture _thumbRT;
     RectTransform _sweep;
     Coroutine _typing, _sweeping;
     string _bodyFull = "";
@@ -123,6 +125,7 @@ public class TargetOverlay : MonoBehaviour
     {
         if (_mats != null) foreach (var m in _mats) if (m != null) Destroy(m);
         if (_reticleMat != null) Destroy(_reticleMat);
+        if (_thumbRT != null) { _thumbRT.Release(); _thumbRT = null; }
         if (_burstMat != null) Destroy(_burstMat);
     }
 
@@ -153,7 +156,7 @@ public class TargetOverlay : MonoBehaviour
         var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
         var rt = (RectTransform)go.transform;
         rt.sizeDelta = new Vector2(600, 300);
-        rt.localScale = Vector3.one * 0.0014f;
+        rt.localScale = Vector3.one * 0.00115f;  // R3: slimmer footprint (field report)
         // Inside the One Pro's visible window (~+/-0.70m x +/-0.40m at 1.6m):
         // panel spans x -0.66..0.18, y -0.36..0.06 — nothing clips at display edges.
         rt.localPosition = new Vector3(-0.24f, -0.15f, 1.6f);
@@ -172,24 +175,38 @@ public class TargetOverlay : MonoBehaviour
 
         // fixed vertical slots — title / body / footer can never overlap (the old layout stacked
         // two overflowing rects on top of each other, which is exactly the "writes over itself" bug)
-        _dTitle = MkTmp(go.transform, "title", 27, new Vector2(0, 116), new Vector2(560, 40));
+        _dTitle = MkTmp(go.transform, "title", 23, new Vector2(0, 116), new Vector2(560, 40));
         _dTitle.fontStyle = FontStyles.Bold;
         _dTitle.characterSpacing = 4f;
         _dTitle.textWrappingMode = TextWrappingModes.NoWrap;
         _dTitle.overflowMode = TextOverflowModes.Ellipsis;
         _titleHome = ((RectTransform)_dTitle.transform).anchoredPosition;   // ghost-offset restore point
 
-        _dBody = MkTmp(go.transform, "body", 21, new Vector2(0, -8), new Vector2(560, 196));
+        _dBody = MkTmp(go.transform, "body", 18, new Vector2(-56, -8), new Vector2(448, 196));
         _dBody.color = CyberPalette.Cyan;
         _dBody.lineSpacing = 6f;
         _dBody.textWrappingMode = TextWrappingModes.Normal;
         _dBody.overflowMode = TextOverflowModes.Ellipsis;   // never spill outside the panel
 
-        _dFoot = MkTmp(go.transform, "foot", 16, new Vector2(0, -128), new Vector2(560, 26));
+        _dFoot = MkTmp(go.transform, "foot", 14, new Vector2(0, -128), new Vector2(560, 26));
         _dFoot.color = CyberPalette.Dim;
         _dFoot.characterSpacing = 2f;
         _dFoot.textWrappingMode = TextWrappingModes.NoWrap;
         _dFoot.overflowMode = TextOverflowModes.Ellipsis;
+
+        // target snapshot: a small photo of the tagged object captured at lock time so
+        // the viewer can confirm the target after looking away (field request). Sits in
+        // the panel's right column (the body text was narrowed to make room).
+        _thumbRT = new RenderTexture(128, 128, 0, RenderTextureFormat.ARGB32);
+        var thumbFrame = MkImage(go.transform, "thumbFrame", new Vector2(230, 22), new Vector2(126, 126), CyberPalette.Dim);
+        var thumbGo = new GameObject("thumb", typeof(RawImage));
+        thumbGo.transform.SetParent(go.transform, false);
+        _thumb = thumbGo.GetComponent<RawImage>();
+        _thumb.texture = _thumbRT;
+        _thumb.raycastTarget = false;
+        var trt = (RectTransform)thumbGo.transform;
+        trt.sizeDelta = new Vector2(120, 120);
+        trt.anchoredPosition = new Vector2(230, 22);
 
         // retarget scan sweep (hidden until used)
         var sweepImg = MkImage(go.transform, "sweep", new Vector2(0, 140), new Vector2(588, 4), CyberPalette.Cyan);
@@ -284,7 +301,7 @@ public class TargetOverlay : MonoBehaviour
                 var t = _reticle.transform;
                 t.localPosition = new Vector3((cx - 0.5f) * worldW, -(cy - 0.5f) * worldH, distance - 0.02f);
                 t.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                float s = Mathf.Clamp(Mathf.Min(primary.box.width * worldW, primary.box.height * worldH) * 0.35f, 0.05f, 0.16f);
+                float s = Mathf.Clamp(Mathf.Min(primary.box.width * worldW, primary.box.height * worldH) * 0.30f, 0.04f, 0.12f);
                 t.localScale = new Vector3(s, s, 1f);
                 _reticleMat.SetColor("_Color", CyberPalette.Locked);
             }
@@ -384,6 +401,7 @@ public class TargetOverlay : MonoBehaviour
         _bodyFull = $"{p.name}\n{p.line1}\n{p.line2}\n{p.stat}\n> {p.fact}";
         _conf = primary.conf;
         RefreshFooter();
+        SnapshotThumb(primary);
 
         if (_typing != null) StopCoroutine(_typing);
         _typing = StartCoroutine(TypeBody());
@@ -455,6 +473,29 @@ public class TargetOverlay : MonoBehaviour
             yield return null;
         }
         _sweep.gameObject.SetActive(false);
+    }
+
+    // Copy the detection's padded bbox region out of the live feed into the thumbnail RT.
+    // bbox is normalized, top-left origin (camera image space); GL UV origin is bottom-left.
+    void SnapshotThumb(ObjectTracker.Track tr)
+    {
+        if (_thumb == null || _thumbRT == null || detector == null) return;
+        var src = detector.UiSource;
+        if (src == null) { _thumb.enabled = false; return; }
+
+        const float pad = 0.15f;
+        float w = Mathf.Clamp01(tr.box.width  * (1f + pad * 2f));
+        float h = Mathf.Clamp01(tr.box.height * (1f + pad * 2f));
+        float x = Mathf.Clamp01(tr.box.x - tr.box.width  * pad);
+        float y = Mathf.Clamp01(tr.box.y - tr.box.height * pad);
+        if (x + w > 1f) w = 1f - x;
+        if (y + h > 1f) h = 1f - y;
+        if (w < 0.01f || h < 0.01f) { _thumb.enabled = false; return; }
+
+        var scale  = new Vector2(w, h);
+        var offset = new Vector2(x, 1f - y - h);
+        Graphics.Blit(src, _thumbRT, scale, offset);
+        _thumb.enabled = true;
     }
 
     void PruneProfiles()
