@@ -41,6 +41,19 @@ public class TargetOverlay : MonoBehaviour
     string _bodyFull = "";
     float _footTick;
 
+    // R2: one-shot lock burst (Update-driven, no coroutine) + dossier micro-glitches
+    Renderer _burst;
+    Material _burstMat;
+    float _burstT = 1f, _burstFrom, _burstTo;
+    const float BurstDur = 0.25f;
+    int _lastBurstId = -1;
+    string _footClean = "";
+    bool _footCorrupt;
+    Color _titleCol;
+    Vector2 _titleHome;
+    int _ghostFrames;
+    static readonly char[] GlitchChars = { '#', '%', '&', '@', '!', '?' };
+
     // exposed for AudioDirector (M7)
     public int PrimaryId => _panelId;
     public int TrackCount => _tracker != null ? _tracker.Tracks.Count : 0;
@@ -84,6 +97,20 @@ public class TargetOverlay : MonoBehaviour
             _reticle.receiveShadows = false;
             _reticle.enabled = false;
         }
+        // R2: one-shot lock-burst ring (shader mode 2), fired when a primary first fully locks
+        {
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            q.name = "LockBurst";
+            var col = q.GetComponent<Collider>(); if (col) Destroy(col);
+            _burstMat = new Material(sh);
+            _burstMat.SetFloat("_Mode", 2f);
+            _burstMat.SetColor("_Color", CyberPalette.Locked);
+            _burst = q.GetComponent<Renderer>();
+            _burst.material = _burstMat;
+            _burst.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _burst.receiveShadows = false;
+            _burst.enabled = false;
+        }
         BuildDossierPanel();
         // AppBootController expects Camera.main can be NULL at Start (XR rig not resolved yet). Parent now
         // if it is up; otherwise defer + retry in Update so the overlays never orphan at the world origin.
@@ -96,6 +123,7 @@ public class TargetOverlay : MonoBehaviour
     {
         if (_mats != null) foreach (var m in _mats) if (m != null) Destroy(m);
         if (_reticleMat != null) Destroy(_reticleMat);
+        if (_burstMat != null) Destroy(_burstMat);
     }
 
     // Parent the boxes + dossier to the head once Camera.main resolves (mirrors HudOverlayController's
@@ -109,6 +137,7 @@ public class TargetOverlay : MonoBehaviour
         for (int i = 0; i < _boxes.Length; i++)
             if (_boxes[i] != null) _boxes[i].transform.SetParent(p, false);
         if (_reticle != null) _reticle.transform.SetParent(p, false);
+        if (_burst != null) _burst.transform.SetParent(p, false);
         if (_dossierRoot != null) _dossierRoot.SetParent(p, false);
         _parented = true;
         CyberLog.Info("GLOW", "overlay parented to head camera");
@@ -148,6 +177,7 @@ public class TargetOverlay : MonoBehaviour
         _dTitle.characterSpacing = 4f;
         _dTitle.textWrappingMode = TextWrappingModes.NoWrap;
         _dTitle.overflowMode = TextOverflowModes.Ellipsis;
+        _titleHome = ((RectTransform)_dTitle.transform).anchoredPosition;   // ghost-offset restore point
 
         _dBody = MkTmp(go.transform, "body", 21, new Vector2(0, -8), new Vector2(560, 196));
         _dBody.color = CyberPalette.Cyan;
@@ -203,6 +233,14 @@ public class TargetOverlay : MonoBehaviour
         _tracker.Age(Time.time);
         UpdateDominantClass();   // before the parenting gate so the HUD chip is live regardless
 
+        // R2: restore last frame's 1-frame dossier glitches (footer corruption / title ghost)
+        if (_footCorrupt) { _footCorrupt = false; _dFoot.text = _footClean; }
+        if (_ghostFrames > 0 && --_ghostFrames == 0)
+        {
+            _dTitle.color = _titleCol;
+            ((RectTransform)_dTitle.transform).anchoredPosition = _titleHome;
+        }
+
         if (_cam == null) _parented = false;            // camera lost / never resolved -> (re)acquire below
         if (!_parented) { TryParentToCamera(); if (!_parented) return; }
         var cam = _cam;
@@ -252,6 +290,40 @@ public class TargetOverlay : MonoBehaviour
             }
         }
 
+        // R2: one-shot thin ring burst the moment a target first reaches full lock —
+        // fired at the reticle's position/size, expands ~2.6x over 250ms while the
+        // shader fades it out (makes locks feel punchy; lock sfx already fires via
+        // AudioDirector's PrimaryId watch).
+        if (_burst != null)
+        {
+            if (reticleOn && _reticle != null && primary.id != _lastBurstId)
+            {
+                _lastBurstId = primary.id;
+                var bt = _burst.transform;
+                bt.localPosition = _reticle.transform.localPosition + new Vector3(0f, 0f, -0.01f);
+                bt.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                float s0 = _reticle.transform.localScale.x;
+                _burstFrom = s0 * 0.8f;
+                _burstTo = s0 * 2.6f;
+                _burstT = 0f;
+                _burst.enabled = true;
+                CyberLog.Info("GLOW", $"lock burst TGT-{primary.id:000}");
+            }
+            if (primary == null) _lastBurstId = -1;   // re-celebrate after a full drop
+            if (_burst.enabled)
+            {
+                _burstT += Time.deltaTime;
+                float k = _burstT / BurstDur;
+                if (k >= 1f) _burst.enabled = false;
+                else
+                {
+                    float s = Mathf.Lerp(_burstFrom, _burstTo, k);
+                    _burst.transform.localScale = new Vector3(s, s, 1f);
+                    _burstMat.SetFloat("_Lock", k);   // shader mode 2: radius + fade from progress
+                }
+            }
+        }
+
         UpdateDossier(primary);
 
         // footer hex ticker keeps the panel alive between sparse Eye frames (~1.4 Hz rebuild, tiny string)
@@ -259,6 +331,8 @@ public class TargetOverlay : MonoBehaviour
         {
             _footTick = Time.time + 0.7f;
             RefreshFooter();
+            // R2: occasionally corrupt 2 hex chars for exactly one frame (restored above)
+            if (Random.value < 0.22f) CorruptFooterOneFrame();
         }
     }
 
@@ -302,7 +376,11 @@ public class TargetOverlay : MonoBehaviour
         }
         var col = CyberPalette.ForClass(primary.classId);
         _dTitle.text = $"[ {p.title} ]  //TGT-{primary.id:000}";
-        _dTitle.color = Color.Lerp(col, CyberPalette.Locked, 0.5f);
+        _titleCol = Color.Lerp(col, CyberPalette.Locked, 0.5f);
+        // R2: 1-frame magenta ghost offset on retarget (restored at the top of Update)
+        _dTitle.color = CyberPalette.Magenta;
+        ((RectTransform)_dTitle.transform).anchoredPosition = _titleHome + new Vector2(3f, -2f);
+        _ghostFrames = 1;
         _bodyFull = $"{p.name}\n{p.line1}\n{p.line2}\n{p.stat}\n> {p.fact}";
         _conf = primary.conf;
         RefreshFooter();
@@ -326,7 +404,20 @@ public class TargetOverlay : MonoBehaviour
         for (int i = 0; i < 5; i++) sb.Append(i < bars ? '▮' : '▯');
         sb.Append(' ').Append(Mathf.RoundToInt(_conf * 100f)).Append("%  ::  ");
         sb.Append(CyberPalette.HexTicker(_panelId * 7919 + (int)(Time.time * 1.43f)));
-        _dFoot.text = sb.ToString();
+        _footClean = sb.ToString();
+        _dFoot.text = _footClean;
+    }
+
+    // R2: swap 2 chars in the hex zone (back half) for glitch glyphs; Update restores
+    // _footClean on the very next frame — pure text swap, no layout or material churn.
+    void CorruptFooterOneFrame()
+    {
+        if (_footClean.Length < 8) return;
+        var a = _footClean.ToCharArray();
+        for (int n = 0; n < 2; n++)
+            a[Random.Range(_footClean.Length / 2, _footClean.Length)] = GlitchChars[Random.Range(0, GlitchChars.Length)];
+        _dFoot.text = new string(a);
+        _footCorrupt = true;
     }
 
     // Single-owner typewriter: cancelled and restarted on every retarget, so reveals can

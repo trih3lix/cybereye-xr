@@ -6,6 +6,8 @@ Shader "CyberEye/TargetBox"
     // _Lock animates the acquire→lock transition (0 = acquiring: long loose brackets,
     // fast pulse; 1 = locked: tight corners + steady frame). _TOffset de-syncs the pulse
     // between boxes. _Mode 1 draws a small rotating diamond reticle instead of a box.
+    // _Mode 2 draws a one-shot expanding ring burst: _Lock is reused as 0..1 progress
+    // (radius grows, brightness fades) — driven per-frame by TargetOverlay on a new lock.
     Properties
     {
         _Color   ("Color", Color) = (0,1,0.9,1)
@@ -36,6 +38,17 @@ Shader "CyberEye/TargetBox"
             {
                 float2 uv = i.uv;
                 float t = _Time.y + _TOffset;
+
+                if (_Mode > 1.5)
+                {
+                    // Lock burst: thin circular ring expanding from the reticle center.
+                    float2 cb = uv - 0.5;
+                    float r = length(cb);
+                    float rad = lerp(0.08, 0.46, _Lock);
+                    float ring = smoothstep(0.030, 0.012, abs(r - rad));
+                    half3 rcb = _Color.rgb * ring * (1.0 - _Lock * _Lock);
+                    return half4(rcb, 1.0);
+                }
 
                 if (_Mode > 0.5)
                 {
