@@ -1,0 +1,540 @@
+[Licensing::Module] Trying to connect to existing licensing client channel...
+Built from '6000.0/staging' branch; Version is '6000.0.78f1 (ec8a99a872be) revision 15501977'; Using compiler version '193933523'; Build Type 'Release'
+[Licensing::IpcConnector] Channel LicenseClient-jslade doesn't exist
+OS: 'Windows 11  (10.0.26200) Professional' Language: 'en' Physical Memory: 16102 MB
+BatchMode: 1, IsHumanControllingUs: 0, StartBugReporterOnCrash: 0, Is64bit: 1
+System  architecture: x64
+Process architecture: x64
+Date: 2026-07-09T21:17:50Z
+
+COMMAND LINE ARGUMENTS:
+C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Unity.exe
+-batchmode
+-nographics
+-projectPath
+C:\Users\jslade\CyberEyeXR
+-buildTarget
+Android
+-executeMethod
+BuildScript.ConfigureAndBuild
+-release
+-logFile
+C:\Users\jslade\CyberEyeXR\build_lagfix.log
+Successfully changed project path to: C:\Users\jslade\CyberEyeXR
+[Licensing::Module] Successfully launched the LicensingClient (PId: 27184)
+C:/Users/jslade/CyberEyeXR
+[UnityMemory] Configuration Parameters - Can be set up in boot.config
+    "memorysetup-bucket-allocator-granularity=16"
+    "memorysetup-bucket-allocator-bucket-count=8"
+    "memorysetup-bucket-allocator-block-size=33554432"
+    "memorysetup-bucket-allocator-block-count=8"
+    "memorysetup-main-allocator-block-size=16777216"
+    "memorysetup-thread-allocator-block-size=16777216"
+    "memorysetup-gfx-main-allocator-block-size=16777216"
+    "memorysetup-gfx-thread-allocator-block-size=16777216"
+    "memorysetup-cache-allocator-block-size=4194304"
+    "memorysetup-typetree-allocator-block-size=2097152"
+    "memorysetup-profiler-bucket-allocator-granularity=16"
+    "memorysetup-profiler-bucket-allocator-bucket-count=8"
+    "memorysetup-profiler-bucket-allocator-block-size=33554432"
+    "memorysetup-profiler-bucket-allocator-block-count=8"
+    "memorysetup-profiler-allocator-block-size=16777216"
+    "memorysetup-profiler-editor-allocator-block-size=1048576"
+    "memorysetup-temp-allocator-size-main=16777216"
+    "memorysetup-job-temp-allocator-block-size=2097152"
+    "memorysetup-job-temp-allocator-block-size-background=1048576"
+    "memorysetup-job-temp-allocator-reduction-small-platforms=262144"
+    "memorysetup-allocator-temp-initial-block-size-main=262144"
+    "memorysetup-allocator-temp-initial-block-size-worker=262144"
+    "memorysetup-temp-allocator-size-background-worker=32768"
+    "memorysetup-temp-allocator-size-job-worker=262144"
+    "memorysetup-temp-allocator-size-preload-manager=33554432"
+    "memorysetup-temp-allocator-size-nav-mesh-worker=65536"
+    "memorysetup-temp-allocator-size-audio-worker=65536"
+    "memorysetup-temp-allocator-size-cloud-worker=32768"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gi-baking-worker=262144"
+    "memorysetup-temp-allocator-size-gfx=262144"
+Player connection [28912]  Target information:
+
+Player connection [28912]  * "[IP] 172.24.64.1 [Port] 55504 [Flags] 2 [Guid] 64557693 [EditorId] 64557693 [Version] 1048832 [Id] WindowsEditor(7,TQS-2021-125) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [28912]  * "[IP] 192.168.0.148 [Port] 55504 [Flags] 2 [Guid] 64557693 [EditorId] 64557693 [Version] 1048832 [Id] WindowsEditor(7,TQS-2021-125) [Debug] 1 [PackageName] WindowsEditor [ProjectName] Editor" 
+
+Player connection [28912] Host joined multi-casting on [225.0.0.222:54997]...
+Player connection [28912] Host joined alternative multi-casting on [225.0.0.222:34997]...
+Input System module state changed to: Initialized.
+[Physics::Module] Initialized fallback backend.
+[Physics::Module] Id: 0xdecafbad
+Starting IPC server.
+Waiting for clients to connect on \\.\pipe\Unity-LicenseClient-jslade, press Ctrl-C to exit.
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-jslade" at "2026-07-09T21:17:51.5918281Z"
+[Package Manager] Connected to IPC stream "Upm-29060" after 1.2 seconds.
+Library Redirect Path: Library/
+[Licensing::Client] Code 10 while verifying Licensing Client signature (process Id: 27184, path: "C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/Resources/Licensing/Client/Unity.Licensing.Client.exe")
+[Licensing::Module] LicensingClient has failed validation; ignoring
+[Licensing::Client] Handshaking with LicensingClient:
+  Version:                 1.17.4+4293ba1
+  Session Id:              2a606926f1d34a8b842832f09880ac44
+  Correlation Id:          580d5e30ce8716cf450fa66ace95d196
+  External correlation Id: 3729265203820047310
+  Machine Id:              vgpeTuSz9tj5SQx7RnjFQDUMD2o=
+[Licensing::Module] Successfully connected to LicensingClient on channel: "LicenseClient-jslade" (connect: 1.31s, validation: 0.97s, handshake: 0.27s)
+[Licensing::IpcConnector] Successfully connected to: "LicenseClient-jslade-notifications" at "2026-07-09T21:17:52.836493Z"
+[Licensing::Module] Connected to LicensingClient (PId: 27184, launch time: 0.06, total connection time: 2.55s)
+[Licensing::Module] Error: Access token is unavailable; failed to update
+[Physics::Module] Selected backend.
+[Physics::Module] Name: PhysX
+[Physics::Module] Id: 0xf2b8ea05
+[Physics::Module] SDK Version: 4.1.2
+[Physics::Module] Integration Version: 1.0.0
+[Physics::Module] Threading Mode: Multi-Threaded
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully updated license, isAsync: True, time: 0.04
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Module] Licensing Background thread has ended after 2.83s
+Artifact Garbage Collection - Removed 2 unused hashed content files[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Targeting platform: Android
+Refreshing native plugins compatible for Editor in 21.37 ms, found 0 plugins.
+Preloading 0 native plugins for Editor in 0.01 ms.
+Initialize engine version: 6000.0.78f1 (ec8a99a872be)
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path C:/Users/jslade/CyberEyeXR/Assets
+Forcing GfxDevice: Null
+GfxDevice: creating device client; kGfxThreadingModeNonThreaded
+NullGfxDevice:
+    Version:  NULL 1.0 [1.0]
+    Renderer: Null Device
+    Vendor:   Unity Technologies
+Shader Hidden/ProbeVolume/VoxelizeScene is not supported: GPU does not support conservative rasterization
+Initialize mono
+Mono path[0] = 'C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/Managed'
+Mono path[1] = 'C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/MonoBleedingEdge/lib/mono/unityjit-win32'
+Mono config path = 'C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/MonoBleedingEdge/etc'
+Using monoOptions --debugger-agent=transport=dt_socket,embedding=1,server=y,suspend=n,address=127.0.0.1:56060
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+Using cacheserver namespaces - metadata:defaultmetadata, artifacts:defaultartifacts
+ImportWorker Server TCP listen port: 0
+AcceleratorClientConnectionCallback - disconnected - :0
+Begin MonoManager ReloadAssembly
+Registering precompiled unity dll's ...
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/PlaybackEngines/WindowsStandaloneSupport/UnityEditor.WindowsStandalone.Extensions.dll
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/PlaybackEngines/MetroSupport/UnityEditor.UWP.Extensions.dll
+Register platform support module: C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/PlaybackEngines/AndroidPlayer/UnityEditor.Android.Extensions.dll
+Registered in 0.178503 seconds.
+- Loaded All Assemblies, in  2.608 seconds
+Native extension for Android target not found
+Multiple ADB server instances found, the following ADB server instance have been terminated due to being run from another SDK. 
+If instance restarts during deployment, this may cause unexpected issues. Please check that ADB versions are consistent across instances. 
+Process paths: 
+C:\Users\jslade\AppData\Local\Microsoft\WinGet\Packages\Google.PlatformTools_Microsoft.Winget.Source_8wekyb3d8bbwe\platform-tools\adb.exe
+Reconnecting Device: 
+192.168.0.102:5555    
+UnityEngine.Debug:ExtractStackTraceNoAlloc (byte*,int,string)
+UnityEngine.StackTraceUtility:ExtractStackTrace ()
+UnityEngine.DebugLogHandler:Internal_Log (UnityEngine.LogType,UnityEngine.LogOption,string,UnityEngine.Object)
+UnityEngine.DebugLogHandler:LogFormat (UnityEngine.LogType,UnityEngine.Object,string,object[])
+UnityEngine.Logger:Log (UnityEngine.LogType,object)
+UnityEngine.Debug:Log (object)
+UnityEditor.Android.AndroidDeploymentTargetsExtension:GetKnownTargets (UnityEditor.DeploymentTargets.IDeploymentTargetsMainThreadContext,UnityEditor.ProgressHandler) (at /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/DeploymentTargets/AndroidDeploymentTargetsExtension.cs:362)
+UnityEditor.Android.TargetScanWorker:ScanSync () (at /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/TargetScanWorker.cs:164)
+UnityEditor.Android.TargetExtension:OnUsbDevicesChanged (UnityEditor.Hardware.UsbDevice[]) (at /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/ExtensionModule.cs:106)
+UnityEditor.Android.TargetExtension:OnLoad () (at /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/ExtensionModule.cs:67)
+UnityEditor.Modules.ModuleManager:InitializePlatformSupportModules ()
+
+(Filename: /home/bokken/build/output/unity/unity/PlatformDependent/AndroidPlayer/Editor/Managed/DeploymentTargets/AndroidDeploymentTargetsExtension.cs Line: 362)
+
+Android Extension - Scanning For ADB Devices 4664 ms
+Native extension for UWP target not found
+Native extension for WindowsStandalone target not found
+Package Manager log level set to [2]
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in  6.904 seconds
+Domain Reload Profiling: 9480ms
+	BeginReloadAssembly (660ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (0ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (2ms)
+	RebuildCommonClasses (141ms)
+	RebuildNativeTypeToScriptingClass (40ms)
+	initialDomainReloadingComplete (661ms)
+	LoadAllAssembliesAndSetupDomain (1069ms)
+		LoadAssemblies (666ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (1010ms)
+			TypeCache.Refresh (1006ms)
+				TypeCache.ScanAssembly (961ms)
+			BuildScriptInfoCaches (0ms)
+			ResolveRequiredComponents (1ms)
+	FinalizeReload (6908ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (6733ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (5340ms)
+			SetLoadedEditorAssemblies (14ms)
+			BeforeProcessingInitializeOnLoad (235ms)
+			ProcessInitializeOnLoadAttributes (771ms)
+			ProcessInitializeOnLoadMethodAttributes (372ms)
+			AfterProcessingInitializeOnLoad (0ms)
+			EditorAssembliesLoaded (1ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (0ms)
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+Application.AssetDatabase Initial Refresh Start
+[Package Manager] Restoring resolved packages state from cache
+[Licensing::Client] Successfully resolved entitlement details
+[Package Manager] Registered 47 packages:
+  Packages from [https://packages.unity.com]:
+    com.unity.ai.inference@2.6.1 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.ai.inference@9a123aee5df7)
+    com.unity.inputsystem@1.19.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.inputsystem@21a28c3a6c83)
+    com.unity.xr.arfoundation@6.0.7 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.xr.arfoundation@f996f0242444)
+    com.unity.xr.interaction.toolkit@3.0.11 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.xr.interaction.toolkit@7f31b03e8dd3)
+    com.unity.xr.management@4.5.4 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.xr.management@e3a3882b360a)
+    com.unity.xr.core-utils@2.6.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.xr.core-utils@a8b900321199)
+    com.unity.mathematics@1.3.2 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.mathematics@8017b507cc74)
+    com.unity.editorcoroutines@1.1.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.editorcoroutines@87a15ed012c2)
+    com.unity.burst@1.8.29 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.burst@6bb9aca3ef38)
+    com.unity.dt.app-ui@1.3.6 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.dt.app-ui@3bbd9e4c5c92)
+    com.unity.collections@2.6.7 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.collections@31e963071226)
+    com.unity.nuget.newtonsoft-json@3.2.1 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.nuget.newtonsoft-json@74deb55db2a0)
+    com.unity.xr.legacyinputhelpers@2.1.12 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.xr.legacyinputhelpers@b7579e86f3b4)
+    com.unity.searcher@4.9.3 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.searcher@1e17ce91558d)
+    com.unity.nuget.mono-cecil@1.11.6 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff)
+    com.unity.test-framework.performance@3.5.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.test-framework.performance@8b56083ec0f0)
+  Built-in packages:
+    com.unity.render-pipelines.universal@17.0.4 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.render-pipelines.universal@a4f5be60db7e)
+    com.unity.ugui@2.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.ugui@4601c9db1b9b)
+    com.unity.modules.accessibility@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.accessibility)
+    com.unity.modules.androidjni@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.androidjni)
+    com.unity.modules.animation@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.animation)
+    com.unity.modules.assetbundle@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.assetbundle)
+    com.unity.modules.audio@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.audio)
+    com.unity.modules.imageconversion@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.imageconversion)
+    com.unity.modules.imgui@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.imgui)
+    com.unity.modules.jsonserialize@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.jsonserialize)
+    com.unity.modules.particlesystem@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.particlesystem)
+    com.unity.modules.physics@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.physics)
+    com.unity.modules.screencapture@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.screencapture)
+    com.unity.modules.ui@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.ui)
+    com.unity.modules.uielements@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.uielements)
+    com.unity.modules.unitywebrequest@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.unitywebrequest)
+    com.unity.modules.unitywebrequesttexture@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.unitywebrequesttexture)
+    com.unity.modules.video@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.video)
+    com.unity.modules.xr@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.xr)
+    com.unity.modules.subsystems@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.subsystems)
+    com.unity.modules.hierarchycore@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.hierarchycore)
+    com.unity.modules.unityanalytics@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.unityanalytics)
+    com.unity.render-pipelines.core@17.0.4 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.render-pipelines.core@ae070e0972dd)
+    com.unity.shadergraph@17.0.4 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.shadergraph@89df6040bb1d)
+    com.unity.render-pipelines.universal-config@17.0.3 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.render-pipelines.universal-config@dd206bf35d04)
+    com.unity.modules.terrain@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.terrain)
+    com.unity.rendering.light-transport@1.0.1 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.rendering.light-transport@9bd588f963c0)
+    com.unity.test-framework@1.6.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.test-framework@082c24152fd4)
+    com.unity.modules.vr@1.0.0 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.modules.vr)
+    com.unity.ext.nunit@2.0.5 (location: C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.ext.nunit@031a54704bff)
+  Local packages:
+    com.xreal.xr@file:C:\Users\jslade\CyberEyeXR\LocalPackages\com.xreal.xr-src (location: C:\Users\jslade\CyberEyeXR\LocalPackages\com.xreal.xr-src)
+[Subsystems] Looking for new subsystems at path C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.xr.arfoundation@f996f0242444
+[Subsystems] Novel subsystem found at Library/PackageCache/com.unity.xr.arfoundation@f996f0242444/Runtime/UnitySubsystemsManifest.json
+[Subsystems] Discovering subsystems at path C:/Program Files/Unity/Hub/Editor/6000.0.78f1/Editor/Data/Resources/UnitySubsystems
+[Subsystems] Discovering subsystems at path C:/Users/jslade/CyberEyeXR/Assets
+[Subsystems] Discovering subsystems at path C:\Users\jslade\CyberEyeXR\Library\PackageCache\com.unity.xr.arfoundation@f996f0242444
+[Subsystems] No descriptors matched for  examples in Library/PackageCache/com.unity.xr.arfoundation@f996f0242444/Runtime/UnitySubsystemsManifest.json.
+[Subsystems] 1 'inputs' descriptors matched in Library/PackageCache/com.unity.xr.arfoundation@f996f0242444/Runtime/UnitySubsystemsManifest.json
+[Subsystems] No descriptors matched for  displays in Library/PackageCache/com.unity.xr.arfoundation@f996f0242444/Runtime/UnitySubsystemsManifest.json.
+[Subsystems] 1 'meshings' descriptors matched in Library/PackageCache/com.unity.xr.arfoundation@f996f0242444/Runtime/UnitySubsystemsManifest.json
+[Subsystems] Discovering subsystems at path C:\Users\jslade\CyberEyeXR\LocalPackages\com.xreal.xr-src
+[Subsystems] No descriptors matched for  examples in LocalPackages/com.xreal.xr-src/Runtime/UnitySubsystemsManifest.json.
+[Subsystems] 1 'inputs' descriptors matched in LocalPackages/com.xreal.xr-src/Runtime/UnitySubsystemsManifest.json
+[Subsystems] 1 'displays' descriptors matched in LocalPackages/com.xreal.xr-src/Runtime/UnitySubsystemsManifest.json
+[Subsystems] 1 'meshings' descriptors matched in LocalPackages/com.xreal.xr-src/Runtime/UnitySubsystemsManifest.json
+[Package Manager] Done registering packages in 0.36 seconds
+[ScriptCompilation] Requested script compilation because: Assetdatabase observed changes in script compilation related files
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:80
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Users\jslade\CyberEyeXR\
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/Ping'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/Ping application/grpc - - 200 - application/grpc 165.9069ms
+Starting: C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Data\bee_backend.exe --ipc --defer-dag-verification --dagfile="Library/Bee/1300b0aE.dag" --continue-on-failure --profile="Library/Bee/backend1.traceevents" ScriptAssemblies
+WorkingDir: C:/Users/jslade/CyberEyeXR
+DisplayProgressbar: Compiling Scripts
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.runtime.interopservices.windowsruntime has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\Facades\System.Runtime.InteropServices.WindowsRuntime.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Data\NetStandard\Extensions\2.0.0\System.Runtime.InteropServices.WindowsRuntime.dll"
+warn: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Assembly system.componentmodel.composition has duplicate hint path. Ignoring "C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Data\UnityReferenceAssemblies\unity-4.8-api\System.ComponentModel.Composition.dll" in favor of "C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Data\NetStandard\compat\2.1.0\shims\netfx\System.ComponentModel.Composition.dll"
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Burst.Cecil, Version=0.11.6.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.burst@6bb9aca3ef38\Unity.Burst.CodeGen\Unity.Burst.Cecil.dll
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Mono.Cecil, Version=0.11.5.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.nuget.mono-cecil@ecb9724e46ff\Mono.Cecil.dll
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/ConfigurePostProcessors'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/ConfigurePostProcessors application/grpc - - 200 - application/grpc 338.5126ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1300b0aE.dag/Assembly-CSharp.dll, with 143 defines and 300 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Collections, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null with Library\Bee\artifacts\1300b0aE.dag\Unity.Collections.dll
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved UnityEditor.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null with C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Data\Managed\UnityEngine\UnityEditor.CoreModule.dll
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved UnityEngine.CoreModule, Version=0.0.0.0, Culture=neutral, PublicKeyToken=null with C:\Program Files\Unity\Hub\Editor\6000.0.78f1\Editor\Data\Managed\UnityEngine\UnityEngine.CoreModule.dll
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingAssemblyLoadContext[0]
+      Resolved Unity.Burst.Cecil.Rocks, Version=0.11.6.0, Culture=neutral, PublicKeyToken=50cebf1cceb9d05e with Library\PackageCache\com.unity.burst@6bb9aca3ef38\Unity.Burst.CodeGen\Unity.Burst.Cecil.Rocks.dll
+info: Microsoft.AspNetCore.Hosting.Diagnostics[1]
+      Request starting HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc -
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[0]
+      Executing endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      Processing assembly Library/Bee/artifacts/1300b0aE.dag/Assembly-CSharp-Editor.dll, with 141 defines and 328 references
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running Unity.Jobs.CodeGen.JobsILPostProcessor
+info: Unity.ILPP.Runner.PostProcessingPipeline[0]
+      running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Routing.EndpointMiddleware[1]
+      Executed endpoint 'gRPC - /UnityILPP.PostProcessing/PostProcessAssembly'
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 1787.6700ms
+info: Microsoft.AspNetCore.Hosting.Diagnostics[2]
+      Request finished HTTP/2 POST http://ilpp/UnityILPP.PostProcessing/PostProcessAssembly application/grpc - - 200 - application/grpc 177.5811ms
+ExitCode: 0 Duration: 11s
+[ 294/1022  0s] WriteResponseFile Library/Bee/artifacts/rsp/4747638433968585886.rsp
+[ 785/1022  0s] ILPP-Configuration Library/ilpp-configuration.nevergeneratedoutput
+[1014/1022  5s] Csc Library/Bee/artifacts/1300b0aE.dag/Assembly-CSharp.dll (+2 others)
+Assets\CyberEye\Scripts\EyeCameraFeed.cs(16,11): warning CS0414: The field 'EyeCameraFeed._retryT' is assigned but its value is never used
+[1015/1022  1s] Csc Library/Bee/artifacts/1300b0aE.dag/Assembly-CSharp-Editor.dll (+2 others)
+Assets\Editor\BuildScript.cs(33,9): warning CS0618: 'PlayerSettings.SetMobileMTRendering(BuildTargetGroup, bool)' is obsolete: 'Use SetMobileMTRendering(NamedBuildTarget buildTarget, bool enable) instead'
+[1016/1022  0s] ILPostProcess Library/Bee/artifacts/1300b0aE.dag/post-processed/Assembly-CSharp-Editor.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1300b0aE.dag/Assembly-CSharp-Editor.dll, with 141 defines and 328 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1017/1022  2s] ILPostProcess Library/Bee/artifacts/1300b0aE.dag/post-processed/Assembly-CSharp.dll (+pdb)
+Processing assembly Library/Bee/artifacts/1300b0aE.dag/Assembly-CSharp.dll, with 143 defines and 300 references
+
+processors: Unity.Jobs.CodeGen.JobsILPostProcessor, zzzUnity.Burst.CodeGen.BurstILPostProcessor
+
+running Unity.Jobs.CodeGen.JobsILPostProcessor
+
+running zzzUnity.Burst.CodeGen.BurstILPostProcessor
+[1018/1022  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.pdb
+[1019/1022  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.pdb
+[1020/1022  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp.dll
+[1021/1022  0s] CopyFiles Library/ScriptAssemblies/Assembly-CSharp-Editor.dll
+*** Tundra build success (10.83 seconds), 10 items updated, 1022 evaluated
+Assets\CyberEye\Scripts\EyeCameraFeed.cs(16,11): warning CS0414: The field 'EyeCameraFeed._retryT' is assigned but its value is never used
+Assets\Editor\BuildScript.cs(33,9): warning CS0618: 'PlayerSettings.SetMobileMTRendering(BuildTargetGroup, bool)' is obsolete: 'Use SetMobileMTRendering(NamedBuildTarget buildTarget, bool enable) instead'
+AssetDatabase: script compilation time: 13.352517s
+Begin MonoManager ReloadAssembly
+Symbol file LoadedFromMemory is not a mono symbol file
+Symbol file LoadedFromMemory is not a mono symbol file
+- Loaded All Assemblies, in  5.302 seconds
+Refreshing native plugins compatible for Editor in 136.60 ms, found 2 plugins.
+Native extension for Android target not found
+Native extension for UWP target not found
+Native extension for WindowsStandalone target not found
+Mono: successfully reloaded assembly
+- Finished resetting the current domain, in 20.598 seconds
+Domain Reload Profiling: 25813ms
+	BeginReloadAssembly (1041ms)
+		ExecutionOrderSort (0ms)
+		DisableScriptedObjects (60ms)
+		BackupInstance (0ms)
+		ReleaseScriptingObjects (0ms)
+		CreateAndSetChildDomain (222ms)
+	RebuildCommonClasses (162ms)
+	RebuildNativeTypeToScriptingClass (56ms)
+	initialDomainReloadingComplete (202ms)
+	LoadAllAssembliesAndSetupDomain (3752ms)
+		LoadAssemblies (3319ms)
+		RebuildTransferFunctionScriptingTraits (0ms)
+		AnalyzeDomain (960ms)
+			TypeCache.Refresh (691ms)
+				TypeCache.ScanAssembly (633ms)
+			BuildScriptInfoCaches (196ms)
+			ResolveRequiredComponents (60ms)
+	FinalizeReload (20599ms)
+		ReleaseScriptCaches (0ms)
+		RebuildScriptCaches (0ms)
+		SetupLoadedEditorAssemblies (19221ms)
+			LogAssemblyErrors (0ms)
+			InitializePlatformSupportModulesInManaged (488ms)
+			SetLoadedEditorAssemblies (63ms)
+			BeforeProcessingInitializeOnLoad (2111ms)
+			ProcessInitializeOnLoadAttributes (15530ms)
+			ProcessInitializeOnLoadMethodAttributes (903ms)
+			AfterProcessingInitializeOnLoad (125ms)
+			EditorAssembliesLoaded (1ms)
+		ExecutionOrderSort2 (0ms)
+		AwakeInstancesAfterBackupRestoration (34ms)
+Refreshing native plugins compatible for Editor in 48.38 ms, found 2 plugins.
+Preloading 1 native plugins for Editor in 3.50 ms.
+Asset Pipeline Refresh (id=5c9f44fbc5b81e748beb3eac1f3aeb8b): Total: 46.174 seconds - Initiated by InitialRefreshV2(ForceSynchronousImport)
+	Summary:
+		Imports: total=0 (actual=0, local cache=0, cache server=0)
+		Asset DB Process Time: managed=0 ms, native=25454 ms
+		Asset DB Callback time: managed=1044 ms, native=488 ms
+		Scripting: domain reloads=1, domain reload time=5305 ms, compile time=13357 ms, other=524 ms
+		Project Asset Count: scripts=1360, non-scripts=2352
+		Asset File Changes: new=0, changed=3, moved=0, deleted=0
+		Scan Filter Count: 0
+	InvokeCustomDependenciesCallbacks: 0.002ms
+	InvokePackagesCallback: 404.788ms
+	ApplyChangesToAssetFolders: 5.356ms
+	Scan: 2115.164ms
+	OnSourceAssetsModified: 3.848ms
+	CategorizeAssetsWithTransientArtifact: 403.553ms
+	ProcessAssetsWithTransientArtifactChanges: 444.874ms
+	CategorizeAssets: 358.899ms
+	ImportOutOfDateAssets: 20916.149ms (7549.590ms without children)
+		CompileScripts: 13356.850ms
+		ReloadNativeAssets: 0.066ms
+		UnloadImportedAssets: 4.613ms
+		EnsureUptoDateAssetsAreRegisteredWithGuidPM: 2.646ms
+		InitializingProgressBar: 0.001ms
+		PostProcessAllAssetNotificationsAddChangedAssets: 0.002ms
+		OnDemandSchedulerStart: 2.381ms
+	PostProcessAllAssets: 1087.453ms
+	Hotreload: 59.580ms
+	GatherAllCurrentPrimaryArtifactRevisions: 0.009ms
+	UnloadStreamsBegin: 9.793ms
+	PersistCurrentRevisions: 0.445ms
+	UnloadStreamsEnd: 0.003ms
+	GenerateScriptTypeHashes: 14.115ms
+	Untracked: 20364.410ms
+
+Application.AssetDatabase Initial Refresh End
+Scanning for USB devices : 3.036ms
+Initializing Unity extensions:
+[MODES] ModeService[none].Initialize
+[MODES] ModeService[none].LoadModes
+[MODES] Loading mode Default (0) for mode-current-id-CyberEye
+Unloading 66 Unused Serialized files (Serialized files now loaded: 0)
+Unloading 6317 unused Assets / (6.6 MB). Loaded Objects now: 7067.
+Memory consumption went from 199.9 MB to 193.3 MB.
+Total: 54.764400 ms (FindLiveObjects: 2.252900 ms CreateObjectMapping: 3.811800 ms MarkObjects: 29.498000 ms  DeleteObjects: 19.197600 ms)
+
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+[Licensing::Client] Successfully resolved entitlement details
+[Licensing::Module] License group:
+  Id: F4-6PTC-XYSH-39NT-VVEA-XXXX
+  Product: Unity Personal
+  Type: ULF
+  Expiration: Unlimited
+[Licensing::Module] License group:
+  Id: 20067618038169-UnityPersXXXX
+  Product: Unity Personal
+  Type: Assigned
+  Expiration: Unlimited
+executeMethod method 'ConfigureAndBuild' in class 'BuildScript' could not be found.
+Argument was -executeMethod BuildScript.ConfigureAndBuild
+Exiting without the bug reporter. Application will terminate with return code 1Shut down.

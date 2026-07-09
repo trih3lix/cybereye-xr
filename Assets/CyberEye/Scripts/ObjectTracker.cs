@@ -18,7 +18,10 @@ public class ObjectTracker
     int _next = 1;
     public IReadOnlyList<Track> Tracks => _tracks;
     public float iouMatch = 0.3f;
-    public float holdSeconds = 2.5f;
+    // Must exceed the Eye's worst-case frame gap (~10 s between frames): at 2.5 s every
+    // track aged out before the next real frame, so objects got a fresh id per frame,
+    // never passed the lock delay, and the HUD flickered instead of holding a target.
+    public float holdSeconds = 12f;
 
     static float IoU(Rect a, Rect b)
     {

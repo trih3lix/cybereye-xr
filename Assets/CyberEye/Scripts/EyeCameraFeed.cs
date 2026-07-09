@@ -20,6 +20,11 @@ public class EyeCameraFeed : MonoBehaviour
     // RGB feed for the Detector; null until the first real frame arrives (so we never detect on black).
     public Texture PreviewTex => _gotFrame ? _rgbRT : null;
 
+    // Bumps on every decoded Eye frame. The Eye delivers ~0.1-1 frames/s while the app
+    // renders 20-60 fps — consumers must gate work on this changing or they re-process
+    // identical pixels dozens of times per real frame.
+    public long FrameSerial { get; private set; }
+
     void Start()
     {
         var sh = Shader.Find("CyberEye/YUVtoRGB");
@@ -71,13 +76,15 @@ public class EyeCameraFeed : MonoBehaviour
         _yuvMat.SetTexture("_UTex", yuv[1]);
         _yuvMat.SetTexture("_VTex", yuv[2]);
         Graphics.Blit(yuv[0], _rgbRT, _yuvMat);   // YUV planes -> RGB RenderTexture
-        _newFrames++; _noFrameT = 0f;
+        _newFrames++; _noFrameT = 0f; FrameSerial++;
         if (!_gotFrame)
         {
             _gotFrame = true;
             if (hud) hud.SetStatus("OPTIC ONLINE");
             CyberLog.Info("EYE", "first real frame -> detector feed live");
-            if (Debug.isDebugBuild && !_dumped) { _dumped = true; DumpFirstFrame(); }
+            // One PNG per boot in ALL build types — the release build is the one that
+            // ships to the field, and this dump is the only channel-order/gamma evidence.
+            if (!_dumped) { _dumped = true; DumpFirstFrame(); }
         }
         var r = _cam.GetResolution();
         if (r.x != _res.x || r.y != _res.y) _res = r;

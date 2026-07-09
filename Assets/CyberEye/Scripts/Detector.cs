@@ -126,9 +126,21 @@ public class Detector : MonoBehaviour
         }
         if (++m_FrameCount < inferenceInterval) return;
         m_FrameCount = 0;
+
+        // Only infer on NEW pixels. The Eye delivers ~0.1-1 frames/s while Update runs at
+        // render rate, so without this gate YOLO re-processed the identical frame ~10x/s —
+        // sustained GPU load, heat, PerfGuard throttling, and the persistent "laggy" feel.
+        // (Test-image mode has no serial; run every interval as before.)
+        if (!preferTestImage && eyeFeed != null)
+        {
+            long serial = eyeFeed.FrameSerial;
+            if (serial == m_LastInferredSerial) return;
+            m_LastInferredSerial = serial;
+        }
         _ = RunInferenceAsync();
     }
 
+    long m_LastInferredSerial = -1;
     float m_BusySince, m_LastCompleted;
 
     // Compile the ~200 GPU compute kernels at boot (during the disclaimer) with one
@@ -162,7 +174,7 @@ public class Detector : MonoBehaviour
             var src = Source();
             if (src == null || m_Disposed || m_Worker == null) return;   // bail if no source or torn down
             CyberLog.Info("DET", "inference start");
-            Graphics.Blit(src, m_InputRT);
+            LetterboxInto(src);
             TextureConverter.ToTensor(m_InputRT, m_Input, m_Transform);   // [0,1] RGB NCHW
 
             // Spread the ~200-layer YOLO dispatch over many frames. A monolithic
@@ -208,6 +220,45 @@ public class Detector : MonoBehaviour
         finally { m_Busy = false; }
     }
 
+    // C-4: aspect-preserving letterbox into the square tensor. The old plain Blit
+    // squashed the 16:9 feed 1.78:1, crushing object shapes (YOLO is trained on
+    // letterboxed input) — a real recall cost on the live path. Pad color is YOLO's
+    // conventional 114/255 gray. Falls back to the squish when CopyTexture region
+    // copies aren't supported so detection never goes fully dark.
+    RenderTexture m_ScaleRT;
+    float m_LbScaleX = 1f, m_LbScaleY = 1f, m_LbOffX, m_LbOffY;
+
+    void LetterboxInto(Texture src)
+    {
+        bool canRegionCopy = (SystemInfo.copyTextureSupport & UnityEngine.Rendering.CopyTextureSupport.Basic) != 0;
+        float srcAspect = (float)src.width / Mathf.Max(1, src.height);
+        if (!canRegionCopy || Mathf.Approximately(srcAspect, 1f))
+        {
+            m_LbScaleX = m_LbScaleY = 1f; m_LbOffX = m_LbOffY = 0f;
+            Graphics.Blit(src, m_InputRT);
+            return;
+        }
+
+        int innerW = srcAspect >= 1f ? INPUT : Mathf.RoundToInt(INPUT * srcAspect);
+        int innerH = srcAspect >= 1f ? Mathf.RoundToInt(INPUT / srcAspect) : INPUT;
+        m_LbScaleX = (float)innerW / INPUT; m_LbScaleY = (float)innerH / INPUT;
+        m_LbOffX = (1f - m_LbScaleX) * 0.5f; m_LbOffY = (1f - m_LbScaleY) * 0.5f;
+
+        if (m_ScaleRT == null || m_ScaleRT.width != innerW || m_ScaleRT.height != innerH)
+        {
+            if (m_ScaleRT != null) m_ScaleRT.Release();
+            m_ScaleRT = new RenderTexture(innerW, innerH, 0, RenderTextureFormat.ARGB32);
+        }
+        Graphics.Blit(src, m_ScaleRT);
+
+        var prev = RenderTexture.active;
+        RenderTexture.active = m_InputRT;
+        GL.Clear(false, true, new Color(0.447f, 0.447f, 0.447f, 1f));
+        RenderTexture.active = prev;
+        Graphics.CopyTexture(m_ScaleRT, 0, 0, 0, 0, innerW, innerH,
+                             m_InputRT, 0, 0, (INPUT - innerW) / 2, (INPUT - innerH) / 2);
+    }
+
     void ParseInto(Tensor<float> boxes, Tensor<int> classes, Tensor<float> scores)
     {
         m_Results.Clear();
@@ -222,6 +273,10 @@ public class Detector : MonoBehaviour
             float conf = sc[i];
             if (conf < confidence) continue;
             float cx = box[i*4+0] / INPUT, cy = box[i*4+1] / INPUT, w = box[i*4+2] / INPUT, h = box[i*4+3] / INPUT;
+            // Un-letterbox: tensor coords -> source-normalized coords (offsets are
+            // symmetric, so this is correct regardless of the readback row order).
+            cx = (cx - m_LbOffX) / m_LbScaleX; cy = (cy - m_LbOffY) / m_LbScaleY;
+            w /= m_LbScaleX; h /= m_LbScaleY;
             m_Results.Add(new Detection {
                 classId = id, label = (id >= 0 && id < Labels.Length) ? Labels[id] : id.ToString(),
                 confidence = conf, x = cx - w*0.5f, y = cy - h*0.5f, w = w, h = h });
@@ -246,5 +301,6 @@ public class Detector : MonoBehaviour
         m_Worker?.Dispose(); m_Worker = null;
         m_Input?.Dispose(); m_Input = null;
         if (m_InputRT != null) { m_InputRT.Release(); m_InputRT = null; }
+        if (m_ScaleRT != null) { m_ScaleRT.Release(); m_ScaleRT = null; }
     }
 }
