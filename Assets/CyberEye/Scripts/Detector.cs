@@ -101,7 +101,19 @@ public class Detector : MonoBehaviour
 
     void Update()
     {
-        if (!m_Ready || m_Busy) return;
+        if (!m_Ready) return;
+        if (m_Busy)
+        {
+            // Watchdog: an inference that never completes (GPU fence hang, lost
+            // continuation) would otherwise wedge detection forever with no log.
+            if (Time.unscaledTime - m_BusySince > 12f)
+            {
+                CyberLog.Err("DET", $"inference wedged {Time.unscaledTime - m_BusySince:F0}s (lastCompleted={(m_LastCompleted > 0 ? (Time.unscaledTime - m_LastCompleted).ToString("F0") + "s ago" : "never")}); resetting busy flag");
+                m_Busy = false;
+                m_FrameCount = 0;
+            }
+            return;
+        }
         if (Source() == null)
         {
             // No live source (before the Eye's first frame, or after a pause/stall): drop any prior
@@ -115,29 +127,45 @@ public class Detector : MonoBehaviour
         _ = RunInferenceAsync();
     }
 
+    float m_BusySince, m_LastCompleted;
+
     async Awaitable RunInferenceAsync()
     {
         m_Busy = true;
+        m_BusySince = Time.unscaledTime;
         try
         {
             var src = Source();
             if (src == null || m_Disposed || m_Worker == null) return;   // bail if no source or torn down
+            CyberLog.Info("DET", "inference start");
             Graphics.Blit(src, m_InputRT);
             TextureConverter.ToTensor(m_InputRT, m_Input, m_Transform);   // [0,1] RGB NCHW
 
             // Spread the ~200-layer YOLO dispatch over many frames. A monolithic
             // Schedule() monopolizes the mobile GPU for the whole network, freezing
             // stereo rendering for ~100-300 ms every detection cycle — on-glasses this
-            // reads as "1 fps once the optics connect".
-            var layers = m_Worker.ScheduleIterable(m_Input);
-            int layerBudget = layersPerFrame;
-            while (layers.MoveNext())
+            // reads as "1 fps once the optics connect". layersPerFrame <= 0 falls back
+            // to the monolithic dispatch (diagnostic escape hatch).
+            int steps = 0;
+            if (layersPerFrame > 0)
             {
-                if (--layerBudget > 0) continue;
-                layerBudget = layersPerFrame;
-                await Awaitable.NextFrameAsync();
-                if (m_Disposed || m_Worker == null) return;
+                var layers = m_Worker.ScheduleIterable(m_Input);
+                int layerBudget = layersPerFrame;
+                while (layers.MoveNext())
+                {
+                    steps++;
+                    if (--layerBudget > 0) continue;
+                    layerBudget = layersPerFrame;
+                    await Awaitable.NextFrameAsync();
+                    if (m_Disposed || m_Worker == null) return;
+                }
             }
+            else
+            {
+                m_Worker.Schedule(m_Input);
+            }
+
+            CyberLog.Info("DET", $"schedule done steps={steps} layersPerFrame={layersPerFrame}");
 
             var boxRef   = m_Worker.PeekOutput("output_0") as Tensor<float>;
             var clsRef   = m_Worker.PeekOutput("output_1") as Tensor<int>;
@@ -149,6 +177,7 @@ public class Detector : MonoBehaviour
             using var boxes   = await boxRef.ReadbackAndCloneAsync();   if (m_Disposed) return;
             using var classes = await clsRef.ReadbackAndCloneAsync();   if (m_Disposed) return;
             using var scores  = await scoreRef.ReadbackAndCloneAsync(); if (m_Disposed) return;
+            m_LastCompleted = Time.unscaledTime;
             ParseInto(boxes, classes, scores);
         }
         catch (Exception e) { CyberLog.Err("DET", "inference error: " + e.Message); }
