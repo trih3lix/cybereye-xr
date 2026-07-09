@@ -13,7 +13,7 @@ public class EyeCameraFeed : MonoBehaviour
     RenderTexture _rgbRT;
     Material _yuvMat;
     bool _permRequested, _capturing, _gotFrame;
-    float _retryT, _fpsT;
+    float _retryT, _fpsT, _noFrameT;
     int _newFrames;
     Vector2Int _res = new Vector2Int(-1, -1);
 
@@ -42,8 +42,17 @@ public class EyeCameraFeed : MonoBehaviour
         }
 #endif
         _capturing = _cam.StartCapture();
+        if (_capturing) _noFrameT = 0f;   // first Eye frame can be seconds out; don't trip the watchdog immediately
         CyberLog.Info("EYE", _capturing ? "StartCapture OK (Eye connected)" : "StartCapture FAILED (Eye not attached / busy)");
         if (hud) hud.SetStatus(_capturing ? "OPTIC SCANNING" : "CONNECT OPTIC - XREAL EYE");
+    }
+
+    // Guarded StopCapture: XREAL's StopCapture can throw if the session already tore the camera down
+    // (backgrounded / Eye unplugged); never let that break our re-arm or teardown paths.
+    void StopCaptureSafe()
+    {
+        try { if (_cam != null && _cam.IsCapturing) _cam.StopCapture(); }
+        catch (System.Exception e) { CyberLog.Warn("EYE", "StopCapture threw: " + e.Message); }
     }
 
     void OnFrame()
@@ -53,7 +62,7 @@ public class EyeCameraFeed : MonoBehaviour
         _yuvMat.SetTexture("_UTex", yuv[1]);
         _yuvMat.SetTexture("_VTex", yuv[2]);
         Graphics.Blit(yuv[0], _rgbRT, _yuvMat);   // YUV planes -> RGB RenderTexture
-        _newFrames++;
+        _newFrames++; _noFrameT = 0f;
         if (!_gotFrame) { _gotFrame = true; if (hud) hud.SetStatus("OPTIC ONLINE"); CyberLog.Info("EYE", "first real frame -> detector feed live"); }
         var r = _cam.GetResolution();
         if (r.x != _res.x || r.y != _res.y) _res = r;
@@ -69,13 +78,49 @@ public class EyeCameraFeed : MonoBehaviour
 #endif
             return;
         }
+
+        // Frame-timeout watchdog. The Eye is sporadic (~1 frame / 3-5s) but a 10s gap means the session
+        // dropped the camera (backgrounded, Eye unplugged, driver stall). Drop capture so the retry loop
+        // above re-arms it; clear _gotFrame so PreviewTex goes null and the detector idles meanwhile.
+        _noFrameT += Time.unscaledDeltaTime;
+        if (_noFrameT >= 10f)
+        {
+            CyberLog.Warn("EYE", "no Eye frames for 10s -> dropping capture to re-arm");
+            StopCaptureSafe();
+            _capturing = false; _gotFrame = false; _noFrameT = 0f;
+            if (hud) hud.SetStatus("CONNECT OPTIC - XREAL EYE");
+            return;
+        }
+
         _fpsT += Time.unscaledDeltaTime;
         if (_fpsT >= 2f) { CyberLog.Info("EYE", $"raw new-frames={_newFrames / _fpsT:F1}/s res={_res.x}x{_res.y}"); _newFrames = 0; _fpsT = 0f; }
     }
 
+    // The XREAL session releases the Eye when the app backgrounds. Release our capture on pause (StartCapture
+    // otherwise latches _capturing=true forever, so the feed would never recover after a background/resume),
+    // then let Update's retry loop re-arm on resume.
+    void OnApplicationPause(bool paused)
+    {
+        if (paused)
+        {
+            if (_capturing || _gotFrame)
+            {
+                StopCaptureSafe();
+                _capturing = false; _gotFrame = false;
+                CyberLog.Info("EYE", "paused -> capture released");
+            }
+        }
+        else
+        {
+            _retryT = 2f; _noFrameT = 0f;   // force the retry loop to re-arm capture on the next Update
+            CyberLog.Info("EYE", "resumed -> re-arming capture");
+        }
+    }
+
     void OnDestroy()
     {
-        if (_cam != null) { _cam.OnRGBCameraUpdate -= OnFrame; if (_cam.IsCapturing) _cam.StopCapture(); }
+        if (_cam != null) _cam.OnRGBCameraUpdate -= OnFrame;
+        StopCaptureSafe();
         if (_rgbRT != null) _rgbRT.Release();
     }
 }
