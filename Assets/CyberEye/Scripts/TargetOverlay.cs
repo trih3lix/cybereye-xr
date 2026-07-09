@@ -15,6 +15,9 @@ public class TargetOverlay : MonoBehaviour
     readonly Dictionary<int, BiometricProfileGenerator.Profile> _profiles = new();
     Renderer[] _boxes;
     Material[] _mats;
+    Camera _cam;                 // cached head camera (Camera.main); resolved once, re-acquired only if lost
+    Transform _dossierRoot;      // dossier canvas root, parented to the camera once it resolves
+    bool _parented;
     int _lastInfer = -1, _panelId = -1;
 
     // dossier panel
@@ -33,7 +36,7 @@ public class TargetOverlay : MonoBehaviour
 
     void Start()
     {
-        var cam = Camera.main;
+        _cam = Camera.main;
         var sh = Shader.Find("CyberEye/TargetBox");
         if (sh == null) CyberLog.Err("GLOW", "CyberEye/TargetBox shader missing");
         _boxes = new Renderer[maxBoxes];
@@ -43,7 +46,6 @@ public class TargetOverlay : MonoBehaviour
             var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
             q.name = "Target" + i;
             var col = q.GetComponent<Collider>(); if (col) Destroy(col);
-            if (cam) q.transform.SetParent(cam.transform, false);
             _mats[i] = new Material(sh);
             _boxes[i] = q.GetComponent<Renderer>();
             _boxes[i].material = _mats[i];
@@ -51,21 +53,41 @@ public class TargetOverlay : MonoBehaviour
             _boxes[i].receiveShadows = false;
             _boxes[i].enabled = false;
         }
-        BuildDossierPanel(cam);
+        BuildDossierPanel();
+        // AppBootController expects Camera.main can be NULL at Start (XR rig not resolved yet). Parent now
+        // if it is up; otherwise defer + retry in Update so the overlays never orphan at the world origin.
+        TryParentToCamera();
+        if (_cam == null) CyberLog.Warn("GLOW", "MainCamera=NULL at Start; deferring overlay parenting");
         CyberLog.Info("GLOW", $"target overlay init (boxes={maxBoxes})");
     }
 
-    void BuildDossierPanel(Camera cam)
+    // Parent the boxes + dossier to the head once Camera.main resolves (mirrors HudOverlayController's
+    // SizeToFov camera-retry). Called from Start and, if the rig was not ready then, again from Update.
+    void TryParentToCamera()
     {
-        // world-space canvas (identity rotation, like the M1 HUD which rendered correctly), lower-left of view
+        if (_parented) return;
+        if (_cam == null) _cam = Camera.main;
+        if (_cam == null) return;
+        var p = _cam.transform;
+        for (int i = 0; i < _boxes.Length; i++)
+            if (_boxes[i] != null) _boxes[i].transform.SetParent(p, false);
+        if (_dossierRoot != null) _dossierRoot.SetParent(p, false);
+        _parented = true;
+        CyberLog.Info("GLOW", "overlay parented to head camera");
+    }
+
+    void BuildDossierPanel()
+    {
+        // world-space canvas (identity rotation, like the M1 HUD which rendered correctly), lower-left of view.
+        // Parented to the camera later by TryParentToCamera; the local transform below is head-relative.
         var go = new GameObject("Dossier", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
-        if (cam) go.transform.SetParent(cam.transform, false);
         var canvas = go.GetComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
         var rt = (RectTransform)go.transform;
         rt.sizeDelta = new Vector2(760, 300);
         rt.localScale = Vector3.one * 0.0016f;
         rt.localPosition = new Vector3(-0.62f, -0.42f, 1.6f);
         rt.localRotation = Quaternion.identity;
+        _dossierRoot = go.transform;
         var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         _dTitle = MkText(go.transform, font, 40, new Vector2(0, 120), new Color(1f, 0.2f, 0.8f), TextAnchor.UpperLeft);
         _dBody  = MkText(go.transform, font, 28, new Vector2(0, 78),  new Color(0f, 1f, 0.9f),  TextAnchor.UpperLeft);
@@ -90,8 +112,9 @@ public class TargetOverlay : MonoBehaviour
         if (detector.InferenceId != _lastInfer) { _lastInfer = detector.InferenceId; _tracker.Update(detector.Detections, Time.time); }
         _tracker.Age(Time.time);
 
-        var cam = Camera.main;
-        if (cam == null) return;
+        if (_cam == null) _parented = false;            // camera lost / never resolved -> (re)acquire below
+        if (!_parented) { TryParentToCamera(); if (!_parented) return; }
+        var cam = _cam;
         float worldH = 2f * distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
         float worldW = worldH * Mathf.Max(cam.aspect, 1f);
 
