@@ -90,15 +90,24 @@ public class Detector : MonoBehaviour
 
     Texture Source()
     {
-        if (preferTestImage && testTexture != null) return testTexture;
-        var live = eyeFeed != null ? eyeFeed.PreviewTex : null;
-        return live != null ? live : testTexture;
+        // Live Eye feed only. The bundled test photo is used ONLY when explicitly asked for (headless
+        // validation) -- never as an automatic fallback, or we'd lock phantom boxes onto nothing before
+        // the Eye's (delayed) first frame and on a plain 2D adb launch. Null here => Update suppresses inference.
+        if (preferTestImage) return testTexture;
+        return eyeFeed != null ? eyeFeed.PreviewTex : null;
     }
 
     void Update()
     {
         if (!m_Ready || m_Busy) return;
-        if (Source() == null) return;
+        if (Source() == null)
+        {
+            // No live source (before the Eye's first frame, or after a pause/stall): drop any prior
+            // detections and bump the id once so TargetOverlay's tracker ages its locked boxes out
+            // instead of leaving them frozen on a dead feed.
+            if (m_Results.Count > 0) { m_Results.Clear(); m_InferCount++; }
+            return;
+        }
         if (++m_FrameCount < inferenceInterval) return;
         m_FrameCount = 0;
         _ = RunInferenceAsync();
