@@ -12,7 +12,7 @@ public class EyeCameraFeed : MonoBehaviour
     XREALRGBCameraTexture _cam;
     RenderTexture _rgbRT;
     Material _yuvMat;
-    bool _permRequested, _capturing, _gotFrame;
+    bool _permRequested, _capturing, _gotFrame, _dumped;
     float _retryT, _fpsT, _noFrameT;
     int _newFrames;
     Vector2Int _res = new Vector2Int(-1, -1);
@@ -63,9 +63,37 @@ public class EyeCameraFeed : MonoBehaviour
         _yuvMat.SetTexture("_VTex", yuv[2]);
         Graphics.Blit(yuv[0], _rgbRT, _yuvMat);   // YUV planes -> RGB RenderTexture
         _newFrames++; _noFrameT = 0f;
-        if (!_gotFrame) { _gotFrame = true; if (hud) hud.SetStatus("OPTIC ONLINE"); CyberLog.Info("EYE", "first real frame -> detector feed live"); }
+        if (!_gotFrame)
+        {
+            _gotFrame = true;
+            if (hud) hud.SetStatus("OPTIC ONLINE");
+            CyberLog.Info("EYE", "first real frame -> detector feed live");
+            if (Debug.isDebugBuild && !_dumped) { _dumped = true; DumpFirstFrame(); }
+        }
         var r = _cam.GetResolution();
         if (r.x != _res.x || r.y != _res.y) _res = r;
+    }
+
+    // C-2 evidence hook: one-shot debug dump of the raw RGB feed RT (exactly what the detector consumes,
+    // pre-letterbox) so it can be adb-pulled to validate channel order + gamma on device. Dev builds only,
+    // fully guarded so a readback/encode/IO hiccup can never break the feed.
+    void DumpFirstFrame()
+    {
+        try
+        {
+            var prev = RenderTexture.active;
+            var tex = new Texture2D(_rgbRT.width, _rgbRT.height, TextureFormat.RGBA32, false);
+            RenderTexture.active = _rgbRT;
+            tex.ReadPixels(new Rect(0, 0, _rgbRT.width, _rgbRT.height), 0, 0);
+            tex.Apply();
+            RenderTexture.active = prev;
+            var png = ImageConversion.EncodeToPNG(tex);
+            Destroy(tex);
+            var path = System.IO.Path.Combine(Application.persistentDataPath, "feed_dump.png");
+            System.IO.File.WriteAllBytes(path, png);
+            Debug.Log("[CyberEye] feed dump: " + path);
+        }
+        catch (System.Exception e) { CyberLog.Warn("EYE", "feed dump failed: " + e.Message); }
     }
 
     void Update()

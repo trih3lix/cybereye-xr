@@ -1,5 +1,7 @@
 # Code Review Handoff — cybereye-xr (2026-07-08)
 
+> **Status — 2026-07-08 evening:** C-3, C-5, C-6, C-7, C-8, C-10, C-15 fixed in working tree; C-2 instrumented (first-live-frame PNG dump, logcat marker `[CyberEye] feed dump:`); pending on-device validation.
+
 ## For the next agent — read this first
 
 This is the healthiest of the four XR repos — it compiles clean (batchmode-verified 2026-07-08 from `C:\Users\jslade\CyberEyeXR` at repo HEAD) and has already shipped to the Beam Pro (`com.jslade.cybereye` installed). Verified-correct: YOLO decode graph, shader always-include config, XR loader wiring. The work is quality/correctness hardening, not resurrection.
