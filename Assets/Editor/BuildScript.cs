@@ -111,6 +111,10 @@ public static class BuildScript
         HardenXrPlayerSettings();
         IconSetup.Apply();
         if (release) ConfigureReleaseSigning();
+        // Dev builds must not inherit useCustomKeystore persisted by a prior release
+        // session: Unity never saves keystore passwords, so the build would fail with
+        // "Unable to sign the application; please provide passwords!".
+        else PlayerSettings.Android.useCustomKeystore = false;
 
         var opts = new BuildPlayerOptions
         {
