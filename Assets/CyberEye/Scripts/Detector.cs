@@ -24,7 +24,7 @@ public class Detector : MonoBehaviour
     [Tooltip("Run inference every N rendered frames (6 @60fps ~= 10Hz).")]
     public int inferenceInterval = 6;
     [Tooltip("GPU layers dispatched per rendered frame; the YOLO graph is amortized across frames so stereo rendering never stalls.")]
-    public int layersPerFrame = 12;
+    public int layersPerFrame = 8;   // R4: lighter per-frame GPU slice (field: still choppy at 12)
 
     const int INPUT = 640;
 

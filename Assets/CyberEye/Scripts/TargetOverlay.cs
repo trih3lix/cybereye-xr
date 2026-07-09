@@ -37,6 +37,9 @@ public class TargetOverlay : MonoBehaviour
     // dossier panel (TMP)
     TMP_Text _dTitle, _dBody, _dFoot;
     RawImage _thumb;                 // last-lock snapshot of the target (field request)
+    Image _thumbFrame;
+    int _thumbInfer = -1;
+    bool _thumbLogged;
     RenderTexture _thumbRT;
     RectTransform _sweep;
     Coroutine _typing, _sweeping;
@@ -204,6 +207,9 @@ public class TargetOverlay : MonoBehaviour
         _thumb = thumbGo.GetComponent<RawImage>();
         _thumb.texture = _thumbRT;
         _thumb.raycastTarget = false;
+        _thumb.enabled = false;               // hidden until the first successful snapshot
+        _thumbFrame = thumbFrame;
+        _thumbFrame.enabled = false;
         var trt = (RectTransform)thumbGo.transform;
         trt.sizeDelta = new Vector2(120, 120);
         trt.anchoredPosition = new Vector2(230, 22);
@@ -342,6 +348,14 @@ public class TargetOverlay : MonoBehaviour
         }
 
         UpdateDossier(primary);
+
+        // Refresh the target photo on every completed inference (bbox is freshest then),
+        // not just on retarget — also makes the feature self-heal if a snapshot missed.
+        if (primary != null && _panelId >= 0 && detector.InferenceId != _thumbInfer)
+        {
+            _thumbInfer = detector.InferenceId;
+            SnapshotThumb(primary);
+        }
 
         // footer hex ticker keeps the panel alive between sparse Eye frames (~1.4 Hz rebuild, tiny string)
         if (_panelId >= 0 && Time.time >= _footTick)
@@ -496,6 +510,8 @@ public class TargetOverlay : MonoBehaviour
         var offset = new Vector2(x, 1f - y - h);
         Graphics.Blit(src, _thumbRT, scale, offset);
         _thumb.enabled = true;
+        if (_thumbFrame != null) _thumbFrame.enabled = true;
+        if (!_thumbLogged) { _thumbLogged = true; CyberLog.Info("GLOW", $"thumb snapshot live (src={src.width}x{src.height} box={tr.box.width:F2}x{tr.box.height:F2})"); }
     }
 
     void PruneProfiles()
