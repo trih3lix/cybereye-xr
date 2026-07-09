@@ -45,6 +45,10 @@ public class TargetOverlay : MonoBehaviour
     public int PrimaryId => _panelId;
     public int TrackCount => _tracker != null ? _tracker.Tracks.Count : 0;
 
+    // exposed for the HUD threat chip (R2): most frequent wanted class among live tracks,
+    // ties broken by summed confidence; -1 when nothing is tracked.
+    public int DominantClassId { get; private set; } = -1;
+
     void Start()
     {
         _cam = Camera.main;
@@ -197,6 +201,7 @@ public class TargetOverlay : MonoBehaviour
         if (detector == null || _boxes == null) return;
         if (detector.InferenceId != _lastInfer) { _lastInfer = detector.InferenceId; _tracker.Update(detector.Detections, Time.time); }
         _tracker.Age(Time.time);
+        UpdateDominantClass();   // before the parenting gate so the HUD chip is live regardless
 
         if (_cam == null) _parented = false;            // camera lost / never resolved -> (re)acquire below
         if (!_parented) { TryParentToCamera(); if (!_parented) return; }
@@ -255,6 +260,26 @@ public class TargetOverlay : MonoBehaviour
             _footTick = Time.time + 0.7f;
             RefreshFooter();
         }
+    }
+
+    // R2: dominant class for the HUD threat chip. O(n²) over ≤ maxBoxes tracks, no allocs.
+    void UpdateDominantClass()
+    {
+        var tracks = _tracker.Tracks;
+        int best = -1; float bestScore = 0f;
+        for (int i = 0; i < tracks.Count; i++)
+        {
+            int cid = tracks[i].classId;
+            bool seen = false;
+            for (int j = 0; j < i; j++) if (tracks[j].classId == cid) { seen = true; break; }
+            if (seen) continue;
+            int n = 0; float conf = 0f;
+            for (int j = 0; j < tracks.Count; j++)
+                if (tracks[j].classId == cid) { n++; conf += tracks[j].conf; }
+            float score = n * 10f + conf;
+            if (score > bestScore) { bestScore = score; best = cid; }
+        }
+        DominantClassId = best;
     }
 
     // ───────────────────────────── dossier content ─────────────────────────────

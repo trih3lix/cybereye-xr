@@ -15,6 +15,12 @@ using UnityEngine.UI;
 //  • Event feed (TMP): newest line lands bottom-right with a 2-frame glitch-jitter, older
 //    lines fade up and out. During boot, SetStatus calls are routed here so subsystem
 //    chatter can never overwrite the legal disclaimer.
+//  • FOV corner ticks: four thin L-brackets breathing at ~15% alpha — frames the AR view
+//    like a viewfinder. Revealed by the boot exit.
+//  • Idle radar ping: when nothing is tracked for >5s, a thin ring expands from view
+//    center every ~3s + a "SCANNING >>>" glyph bottom-left — the app reads as alive
+//    between the Eye's sparse frames.
+//  • Threat chip (top-right): "» N CLASS" in the dominant class color; hidden at 0.
 // Additive optics: black = transparent; thin bright strokes only, center kept clear.
 public class HudController : MonoBehaviour
 {
@@ -46,7 +52,20 @@ public class HudController : MonoBehaviour
     readonly List<Vector2> _basePos = new();
     int _glitchFrames;
 
+    // runtime furniture (R2 cooler pass)
+    CanvasGroup _ticks;          // 4 corner L-brackets (viewfinder framing)
+    float _ticksGain;            // 0 until the boot exit reveals them
+    Image _ping;                 // expanding idle radar ring
+    TMP_Text _scanGlyph;         // "SCANNING >>>" (bottom-left, idle only)
+    TMP_Text _chip;              // threat chip (top-right)
+    Texture2D _ringTex;
+    Sprite _ringSprite;
+    bool _pingActive;
+    float _pingT, _pingCd, _idleT;
+    int _chipCount = -1, _chipClass = -2;
+
     AudioDirector _audio;        // boot cinematic sfx hooks (optional)
+    TargetOverlay _overlay;      // TrackCount / DominantClassId source (optional)
 
     void Awake()
     {
@@ -57,7 +76,16 @@ public class HudController : MonoBehaviour
         // already have a live feed to land in
         BuildFeed();
         BuildSweep();
+        BuildFurniture();
         _audio = FindFirstObjectByType<AudioDirector>();
+        _overlay = FindFirstObjectByType<TargetOverlay>();
+    }
+
+    void OnDestroy()
+    {
+        // runtime GameObjects die with the scene canvas; generated assets do not
+        if (_ringSprite != null) Destroy(_ringSprite);
+        if (_ringTex != null) Destroy(_ringTex);
     }
 
     // ───────────────────────────── boot flow (AppBootController) ─────────────────────────────
@@ -136,6 +164,7 @@ public class HudController : MonoBehaviour
             tRt.localScale = Vector3.one * Mathf.Lerp(1f, ParkScale, k);
             SetTextAlpha(title, Mathf.Lerp(1f, ParkAlpha, k));
             SetTextAlpha(status, 1f - k);
+            _ticksGain = k;   // the viewfinder ticks fade in as the banner hands off
             yield return null;
         }
         FinalizeExit(tRt, sRt);
@@ -149,6 +178,9 @@ public class HudController : MonoBehaviour
         SetTextAlpha(title, ParkAlpha);
         sRt.anchoredPosition = ToastPos;
         SetTextAlpha(status, 0f);
+        _ticksGain = 1f;
+        _idleT = 0f;
+        _pingCd = 1.5f;   // first idle ping shortly after the handoff, then every ~3s
         _phase = Phase.Live;
         CyberLog.Info("HUD", "boot banner parked — center view clear");
     }
@@ -279,11 +311,180 @@ public class HudController : MonoBehaviour
         go.SetActive(false);
     }
 
+    // R2 cooler pass: corner ticks, idle radar ping + SCANNING glyph, threat chip.
+    // Everything edge-anchored (canvas-size-proof, same lesson as the feed fix).
+    void BuildFurniture()
+    {
+        if (status == null) return;              // no canvas -> headless run, skip furniture
+        var parent = status.transform.parent;
+
+        // FOV corner ticks: 4 thin L-brackets under one CanvasGroup (single alpha write/frame)
+        var ticksGo = new GameObject("fovTicks", typeof(RectTransform), typeof(CanvasGroup));
+        ticksGo.transform.SetParent(parent, false);
+        var trt = (RectTransform)ticksGo.transform;
+        trt.anchorMin = Vector2.zero; trt.anchorMax = Vector2.one;
+        trt.offsetMin = trt.offsetMax = Vector2.zero;
+        _ticks = ticksGo.GetComponent<CanvasGroup>();
+        _ticks.alpha = 0f; _ticks.interactable = false; _ticks.blocksRaycasts = false;
+        for (int cx = 0; cx <= 1; cx++)
+            for (int cy = 0; cy <= 1; cy++)
+            {
+                var corner = new Vector2(cx, cy);
+                var inward = new Vector2(cx == 0 ? 4f : -4f, cy == 0 ? 4f : -4f);
+                MkTick(ticksGo.transform, corner, inward, new Vector2(26f, 3f));
+                MkTick(ticksGo.transform, corner, inward, new Vector2(3f, 26f));
+            }
+
+        // idle radar ping ring (sprite generated at runtime — no assets, default UI material)
+        var pingGo = new GameObject("radarPing", typeof(Image));
+        pingGo.transform.SetParent(parent, false);
+        _ping = pingGo.GetComponent<Image>();
+        _ping.sprite = BuildRingSprite();
+        _ping.raycastTarget = false;
+        _ping.color = new Color(CyberPalette.Cyan.r, CyberPalette.Cyan.g, CyberPalette.Cyan.b, 0f);
+        var prt = (RectTransform)pingGo.transform;
+        prt.sizeDelta = new Vector2(560f, 560f);
+        prt.anchoredPosition = Vector2.zero;
+        _ping.enabled = false;
+
+        // SCANNING glyph (bottom-left; the dossier only occupies that zone when a target
+        // is locked, and this glyph only shows when nothing is tracked — never both)
+        _scanGlyph = MkTmp(parent, "scanGlyph", 19, TextAlignmentOptions.BottomLeft);
+        var grt = (RectTransform)_scanGlyph.transform;
+        grt.anchorMin = grt.anchorMax = grt.pivot = Vector2.zero;
+        grt.sizeDelta = new Vector2(220f, 24f);
+        grt.anchoredPosition = new Vector2(14f, 12f);
+        _scanGlyph.text = "SCANNING >>>";
+        _scanGlyph.color = new Color(CyberPalette.Dim.r, CyberPalette.Dim.g, CyberPalette.Dim.b, 0.6f);
+        _scanGlyph.gameObject.SetActive(false);
+
+        // threat chip (top-right, tucked under the corner tick)
+        _chip = MkTmp(parent, "threatChip", 20, TextAlignmentOptions.MidlineRight);
+        var crt = (RectTransform)_chip.transform;
+        crt.anchorMin = crt.anchorMax = crt.pivot = Vector2.one;
+        crt.sizeDelta = new Vector2(260f, 26f);
+        crt.anchoredPosition = new Vector2(-14f, -34f);
+        _chip.text = "";
+        _chip.gameObject.SetActive(false);
+    }
+
+    void MkTick(Transform parent, Vector2 corner, Vector2 pos, Vector2 size)
+    {
+        var go = new GameObject("tick", typeof(Image));
+        go.transform.SetParent(parent, false);
+        var img = go.GetComponent<Image>();
+        img.color = CyberPalette.Cyan;
+        img.raycastTarget = false;
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = rt.anchorMax = rt.pivot = corner;   // grow inward from the corner
+        rt.sizeDelta = size;
+        rt.anchoredPosition = pos;
+    }
+
+    TMP_Text MkTmp(Transform parent, string name, float size, TextAlignmentOptions align)
+    {
+        var go = new GameObject(name, typeof(TextMeshProUGUI));
+        go.transform.SetParent(parent, false);
+        var t = go.GetComponent<TextMeshProUGUI>();
+        t.fontSize = size;
+        t.alignment = align;
+        t.textWrappingMode = TextWrappingModes.NoWrap;
+        t.overflowMode = TextOverflowModes.Overflow;
+        t.characterSpacing = 2f;
+        t.raycastTarget = false;
+        return t;
+    }
+
+    // One-time 256px radial-band texture: a thin soft ring, tinted/faded via Image.color.
+    Sprite BuildRingSprite()
+    {
+        const int S = 256;
+        _ringTex = new Texture2D(S, S, TextureFormat.RGBA32, false);
+        _ringTex.wrapMode = TextureWrapMode.Clamp;
+        var px = new Color32[S * S];
+        float c = (S - 1) * 0.5f, rad = S * 0.44f, soft = S * 0.016f;
+        for (int y = 0; y < S; y++)
+            for (int x = 0; x < S; x++)
+            {
+                float d = Mathf.Abs(Mathf.Sqrt((x - c) * (x - c) + (y - c) * (y - c)) - rad);
+                float a = Mathf.Clamp01(1f - d / soft);
+                a *= a;   // soften the band edge
+                px[y * S + x] = new Color32(255, 255, 255, (byte)(a * 255f));
+            }
+        _ringTex.SetPixels32(px);
+        _ringTex.Apply(false, false);
+        _ringSprite = Sprite.Create(_ringTex, new Rect(0, 0, S, S), new Vector2(0.5f, 0.5f), 100f);
+        return _ringSprite;
+    }
+
     // ───────────────────────────── frame update ─────────────────────────────
 
     void Update()
     {
         UpdateFeed();
+        // viewfinder ticks breathe very slowly (~10–20% alpha), gated by the boot-exit reveal
+        if (_ticks != null) _ticks.alpha = _ticksGain * (0.15f + 0.05f * Mathf.Sin(Time.time * 0.6f));
+        UpdateThreatChip();
+        UpdateIdleRadar();
+    }
+
+    // "» N CLASS" in the dominant class color; rebuilt only when (count, class) changes.
+    void UpdateThreatChip()
+    {
+        if (_chip == null) return;
+        int count = _overlay != null ? _overlay.TrackCount : 0;
+        int cls = _overlay != null ? _overlay.DominantClassId : -1;
+        if (count == _chipCount && cls == _chipClass) return;
+        _chipCount = count; _chipClass = cls;
+        if (count <= 0) { _chip.gameObject.SetActive(false); return; }
+        var c = CyberPalette.ForClass(cls); c.a = 0.9f;
+        _chip.color = c;
+        _chip.text = $"» {count} {CyberPalette.ClassWord(cls)}";
+        _chip.gameObject.SetActive(true);
+    }
+
+    // Nothing tracked for >5s -> SCANNING glyph + a thin ring expanding from view center
+    // every ~3s. Communicates liveness between the Eye's sparse frames; vanishes the
+    // moment anything is tracked so it can never sit on top of a real target.
+    void UpdateIdleRadar()
+    {
+        if (_ping == null || _scanGlyph == null) return;
+        bool idle = _phase == Phase.Live && (_overlay == null || _overlay.TrackCount == 0);
+        if (!idle)
+        {
+            _idleT = 0f;
+            _pingActive = false;
+            if (_ping.enabled) _ping.enabled = false;
+            if (_scanGlyph.gameObject.activeSelf) _scanGlyph.gameObject.SetActive(false);
+            return;
+        }
+        _idleT += Time.deltaTime;
+        if (_idleT < 5f) return;
+        if (!_scanGlyph.gameObject.activeSelf)
+        {
+            _scanGlyph.gameObject.SetActive(true);
+            CyberLog.Info("HUD", "idle scan mode");
+        }
+        _scanGlyph.maxVisibleCharacters = 9 + (int)(Time.time * 2.5f) % 4;   // SCANNING > >> >>>
+        _pingCd -= Time.deltaTime;
+        if (_pingCd <= 0f && !_pingActive)
+        {
+            _pingActive = true; _pingT = 0f; _pingCd = 3f;
+            _ping.enabled = true;
+        }
+        if (_pingActive)
+        {
+            _pingT += Time.deltaTime;
+            float k = _pingT / 1.1f;
+            if (k >= 1f) { _pingActive = false; _ping.enabled = false; }
+            else
+            {
+                _ping.rectTransform.localScale = Vector3.one * Mathf.Lerp(0.12f, 1f, k);
+                var c = _ping.color;
+                c.a = 0.30f * (1f - k);
+                _ping.color = c;
+            }
+        }
     }
 
     void UpdateFeed()

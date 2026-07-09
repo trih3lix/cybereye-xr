@@ -19,6 +19,16 @@ public static class CyberPalette
 
     public static Color Locked => Yellow;
 
+    // Threat-chip vocabulary for the detector's wanted classes (person/bird/cat/dog).
+    public static string ClassWord(int id) => id switch
+    {
+        0  => "ORGANIC",
+        14 => "AVIAN",
+        15 => "FELINE",
+        16 => "CANINE",
+        _  => "OBJECT"
+    };
+
     // Deterministic fake hex readout content, cheap to regenerate.
     public static string HexTicker(int seed, int groups = 3)
     {
