@@ -82,17 +82,38 @@ public class EyeCameraFeed : MonoBehaviour
             _gotFrame = true;
             if (hud) hud.SetStatus("OPTIC ONLINE");
             CyberLog.Info("EYE", "first real frame -> detector feed live");
-            // One PNG per boot in ALL build types — the release build is the one that
-            // ships to the field, and this dump is the only channel-order/gamma evidence.
-            if (!_dumped) { _dumped = true; DumpFirstFrame(); }
+            // Dump only when explicitly asked: dev builds, or a marker file pushed
+            // over adb (`touch .../files/dump_feed`). An unconditional release dump
+            // silently persisted a photo of the wearer's surroundings on every boot
+            // (privacy) and stalled the main thread with ReadPixels+PNG at the exact
+            // moment the feed went live. When not dumping, purge any stale capture.
+            if (!_dumped)
+            {
+                _dumped = true;
+                string marker = System.IO.Path.Combine(Application.persistentDataPath, "dump_feed");
+                if (Debug.isDebugBuild || System.IO.File.Exists(marker))
+                {
+                    DumpFirstFrame();
+                }
+                else
+                {
+                    try
+                    {
+                        string stale = System.IO.Path.Combine(Application.persistentDataPath, "feed_dump.png");
+                        if (System.IO.File.Exists(stale)) System.IO.File.Delete(stale);
+                    }
+                    catch (System.Exception e) { CyberLog.Warn("EYE", "stale dump purge: " + e.Message); }
+                }
+            }
         }
         var r = _cam.GetResolution();
         if (r.x != _res.x || r.y != _res.y) _res = r;
     }
 
     // C-2 evidence hook: one-shot debug dump of the raw RGB feed RT (exactly what the detector consumes,
-    // pre-letterbox) so it can be adb-pulled to validate channel order + gamma on device. Dev builds only,
-    // fully guarded so a readback/encode/IO hiccup can never break the feed.
+    // pre-letterbox) so it can be adb-pulled to validate channel order + gamma on device. Runs in dev
+    // builds or when the 'dump_feed' marker file exists; fully guarded so a readback/encode/IO hiccup
+    // can never break the feed.
     void DumpFirstFrame()
     {
         try
