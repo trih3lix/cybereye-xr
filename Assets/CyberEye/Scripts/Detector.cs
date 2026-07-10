@@ -131,13 +131,16 @@ public class Detector : MonoBehaviour
         // render rate, so without this gate YOLO re-processed the identical frame ~10x/s —
         // sustained GPU load, heat, PerfGuard throttling, and the persistent "laggy" feel.
         // (Test-image mode has no serial; run every interval as before.)
+        long serial = -1;
         if (!preferTestImage && eyeFeed != null)
         {
-            long serial = eyeFeed.FrameSerial;
+            serial = eyeFeed.FrameSerial;
             if (serial == m_LastInferredSerial) return;
-            m_LastInferredSerial = serial;
+            // Committed inside RunInferenceAsync only once the frame is actually
+            // consumed — committing here meant a bailed/thrown dispatch lost that
+            // Eye frame for up to ~10s at the camera's sparse cadence.
         }
-        _ = RunInferenceAsync();
+        _ = RunInferenceAsync(serial);
     }
 
     long m_LastInferredSerial = -1;
@@ -165,7 +168,7 @@ public class Detector : MonoBehaviour
         finally { m_Busy = false; }
     }
 
-    async Awaitable RunInferenceAsync()
+    async Awaitable RunInferenceAsync(long serial = -1)
     {
         m_Busy = true;
         m_BusySince = Time.unscaledTime;
@@ -176,6 +179,7 @@ public class Detector : MonoBehaviour
             CyberLog.Info("DET", "inference start");
             LetterboxInto(src);
             TextureConverter.ToTensor(m_InputRT, m_Input, m_Transform);   // [0,1] RGB NCHW
+            if (serial >= 0) m_LastInferredSerial = serial;   // frame consumed — safe to commit
 
             // Spread the ~200-layer YOLO dispatch over many frames. A monolithic
             // Schedule() monopolizes the mobile GPU for the whole network, freezing
@@ -246,15 +250,17 @@ public class Detector : MonoBehaviour
 
         if (m_ScaleRT == null || m_ScaleRT.width != innerW || m_ScaleRT.height != innerH)
         {
-            if (m_ScaleRT != null) m_ScaleRT.Release();
+            if (m_ScaleRT != null) { m_ScaleRT.Release(); Destroy(m_ScaleRT); }   // Release frees the surface; the wrapper leaks without Destroy
             m_ScaleRT = new RenderTexture(innerW, innerH, 0, RenderTextureFormat.ARGB32);
+            // The gray pad border only depends on the inner dims — paint it once here
+            // instead of a full-target GL.Clear on every inference (the inner region
+            // is fully overwritten by the CopyTexture each call anyway).
+            var prev = RenderTexture.active;
+            RenderTexture.active = m_InputRT;
+            GL.Clear(false, true, new Color(0.447f, 0.447f, 0.447f, 1f));
+            RenderTexture.active = prev;
         }
         Graphics.Blit(src, m_ScaleRT);
-
-        var prev = RenderTexture.active;
-        RenderTexture.active = m_InputRT;
-        GL.Clear(false, true, new Color(0.447f, 0.447f, 0.447f, 1f));
-        RenderTexture.active = prev;
         Graphics.CopyTexture(m_ScaleRT, 0, 0, 0, 0, innerW, innerH,
                              m_InputRT, 0, 0, (INPUT - innerW) / 2, (INPUT - innerH) / 2);
     }
@@ -300,7 +306,7 @@ public class Detector : MonoBehaviour
         m_Disposed = true;   // set before disposing so an in-flight RunInferenceAsync bails after its next await
         m_Worker?.Dispose(); m_Worker = null;
         m_Input?.Dispose(); m_Input = null;
-        if (m_InputRT != null) { m_InputRT.Release(); m_InputRT = null; }
-        if (m_ScaleRT != null) { m_ScaleRT.Release(); m_ScaleRT = null; }
+        if (m_InputRT != null) { m_InputRT.Release(); Destroy(m_InputRT); m_InputRT = null; }
+        if (m_ScaleRT != null) { m_ScaleRT.Release(); Destroy(m_ScaleRT); m_ScaleRT = null; }
     }
 }
