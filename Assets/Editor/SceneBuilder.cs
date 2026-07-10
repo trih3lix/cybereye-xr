@@ -42,7 +42,14 @@ public static class SceneBuilder
         crt.localPosition = new Vector3(0f, 0f, 1.5f);
         crt.localRotation = Quaternion.identity;
 
-        var font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        // Cyberpunk type: Share Tech Mono (OFL) drives BOTH text systems — the TMP
+        // default font asset (all runtime TMP text inherits it) and the two legacy
+        // Text elements.
+        var cyberTtf = AssetDatabase.LoadAssetAtPath<Font>("Assets/CyberEye/Fonts/ShareTechMono-Regular.ttf");
+        var cyberTmp = EnsureCyberTmpFont(cyberTtf);
+        ApplyDefaultTmpFont(cyberTmp);
+
+        var font = cyberTtf != null ? cyberTtf : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         var title  = CreateText(canvasGO.transform, "Title",  "NIGHT CITY OS", 54, new Vector2(0, 110), font, new Color(0f, 1f, 0.9f));
         var status = CreateText(canvasGO.transform, "Status", "> BOOTING",      34, new Vector2(0, 10),  font, new Color(1f, 0.25f, 0.85f));
 
@@ -90,6 +97,14 @@ public static class SceneBuilder
         Wire(audio, "glitchSfx", AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CyberEye/Audio/glitch.wav"));
         Wire(audio, "alertSfx",  AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/CyberEye/Audio/alert.wav"));
 
+        // R7: 6DoF effects — world-anchored target pins + heading tape / velocity
+        // ticker / head-turn glitch bursts.
+        var pins = app.AddComponent<TargetPins>();
+        Wire(pins, "overlay", targets);
+        var telemetry = app.AddComponent<MotionTelemetry>();
+        Wire(telemetry, "hudCanvas", canvasGO.transform);
+        Wire(telemetry, "pins", pins);
+
         // M8: perf/thermal guard + minimal vol-key settings.
         var perf = app.AddComponent<PerfGuard>();
         Wire(perf, "detector", det);
@@ -102,6 +117,53 @@ public static class SceneBuilder
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         Debug.Log($"[CYBEREYE-SCENE] saved {ScenePath} as build scene 0 (camera={cam.name})");
         EditorApplication.Exit(0);
+    }
+
+    /// <summary>Headless TMP font asset from the bundled TTF (created once, committed).
+    /// Dynamic atlas population so any glyph (·¦°→ etc.) rasterizes at runtime.</summary>
+    static TMPro.TMP_FontAsset EnsureCyberTmpFont(Font ttf)
+    {
+        const string assetPath = "Assets/CyberEye/Fonts/ShareTechMono SDF.asset";
+        var existing = AssetDatabase.LoadAssetAtPath<TMPro.TMP_FontAsset>(assetPath);
+        if (existing != null) return existing;
+        if (ttf == null) { Debug.LogWarning("[CYBEREYE-SCENE] ShareTechMono TTF missing — keeping default TMP font"); return null; }
+
+        var fa = TMPro.TMP_FontAsset.CreateFontAsset(ttf, 90, 9,
+            UnityEngine.TextCore.LowLevel.GlyphRenderMode.SDFAA, 1024, 1024,
+            TMPro.AtlasPopulationMode.Dynamic);
+        if (fa == null) { Debug.LogError("[CYBEREYE-SCENE] TMP font asset creation FAILED"); return null; }
+        fa.name = "ShareTechMono SDF";
+        AssetDatabase.CreateAsset(fa, assetPath);
+        if (fa.material != null)
+        {
+            fa.material.name = fa.name + " Material";
+            AssetDatabase.AddObjectToAsset(fa.material, fa);
+        }
+        if (fa.atlasTexture != null)
+        {
+            fa.atlasTexture.name = fa.name + " Atlas";
+            AssetDatabase.AddObjectToAsset(fa.atlasTexture, fa);
+        }
+        AssetDatabase.SaveAssets();
+        Debug.Log("[CYBEREYE-SCENE] created " + assetPath);
+        return fa;
+    }
+
+    /// <summary>Point TMP_Settings.defaultFontAsset at the cyber font so every runtime
+    /// TMP element (feed, dossier, chips, pins, tape) inherits it with zero rewiring.</summary>
+    static void ApplyDefaultTmpFont(TMPro.TMP_FontAsset fa)
+    {
+        if (fa == null) return;
+        var settings = AssetDatabase.LoadAssetAtPath<TMPro.TMP_Settings>("Assets/TextMesh Pro/Resources/TMP Settings.asset");
+        if (settings == null) { Debug.LogWarning("[CYBEREYE-SCENE] TMP Settings.asset not found — default font unchanged"); return; }
+        var so = new SerializedObject(settings);
+        var prop = so.FindProperty("m_defaultFontAsset");
+        if (prop == null) { Debug.LogWarning("[CYBEREYE-SCENE] TMP Settings has no m_defaultFontAsset property"); return; }
+        prop.objectReferenceValue = fa;
+        so.ApplyModifiedPropertiesWithoutUndo();
+        EditorUtility.SetDirty(settings);
+        AssetDatabase.SaveAssets();
+        Debug.Log("[CYBEREYE-SCENE] TMP default font -> ShareTechMono SDF");
     }
 
     static Text CreateText(Transform parent, string name, string text, int size, Vector2 anchoredPos, Font font, Color color)

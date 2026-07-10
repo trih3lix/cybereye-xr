@@ -63,6 +63,12 @@ public class TargetOverlay : MonoBehaviour
     public int PrimaryId => _panelId;
     public int TrackCount => _tracker != null ? _tracker.Tracks.Count : 0;
 
+    // Locked-primary snapshot for TargetPins (world-anchored markers).
+    public bool HasLockedPrimary { get; private set; }
+    public int LockedPrimaryTrackId { get; private set; }
+    public int LockedPrimaryClassId { get; private set; }
+    public Rect LockedPrimaryBox { get; private set; }
+
     // exposed for the HUD threat chip (R2): most frequent wanted class among live tracks,
     // ties broken by summed confidence; -1 when nothing is tracked.
     public int DominantClassId { get; private set; } = -1;
@@ -298,6 +304,16 @@ public class TargetOverlay : MonoBehaviour
 
         // reticle rides the locked primary's center
         bool reticleOn = primary != null && primarySlot >= 0 && _lock[primarySlot] > 0.85f;
+
+        // Snapshot for world-pin placement (TargetPins): the locked primary's
+        // identity + normalized box, valid this frame only.
+        HasLockedPrimary = reticleOn;
+        if (reticleOn)
+        {
+            LockedPrimaryTrackId = primary.id;
+            LockedPrimaryClassId = primary.classId;
+            LockedPrimaryBox = primary.box;
+        }
         if (_reticle != null)
         {
             _reticle.enabled = reticleOn;

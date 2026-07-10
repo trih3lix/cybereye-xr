@@ -38,7 +38,20 @@ public class Detector : MonoBehaviour
         "dining table","toilet","tv","laptop","mouse","remote","keyboard","cell phone","microwave","oven",
         "toaster","sink","refrigerator","book","clock","vase","scissors","teddy bear","hair drier","toothbrush"
     };
-    static bool IsWanted(int id) => id == 0 || id == 14 || id == 15 || id == 16; // person, bird(duck), cat, dog
+    // Organics + the common-household COCO set (kitchenware, food, furniture,
+    // electronics, appliances, sundries). CyberPalette carries a designation +
+    // color for every id listed here.
+    static readonly HashSet<int> Wanted = new HashSet<int>
+    {
+        0, 14, 15, 16,                          // person, bird, cat, dog
+        39, 40, 41, 42, 43, 44, 45,             // bottle, wine glass, cup, fork, knife, spoon, bowl
+        46, 47, 48, 49,                         // banana, apple, sandwich, orange
+        56, 57, 58, 59, 60,                     // chair, couch, potted plant, bed, dining table
+        62, 63, 64, 65, 66, 67,                 // tv, laptop, mouse, remote, keyboard, cell phone
+        68, 69, 70, 71, 72,                     // microwave, oven, toaster, sink, refrigerator
+        73, 74, 75, 76, 77, 78, 79              // book, clock, vase, scissors, teddy bear, hair drier, toothbrush
+    };
+    static bool IsWanted(int id) => Wanted.Contains(id);
 
     public struct Detection { public int classId; public string label; public float confidence; public float x, y, w, h; }
     readonly List<Detection> m_Results = new();
