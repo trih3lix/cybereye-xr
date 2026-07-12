@@ -59,6 +59,14 @@ public class Detector : MonoBehaviour
     public int InferenceId => m_InferCount;   // increments each completed inference (for the tracker)
     public Texture UiSource => Source();          // current feed for UI snapshots (thumbnail crops)
 
+    // Head pose captured when the inference INPUT frame is consumed. Consumers
+    // reproject detections through this pose so boxes/pins land where the object
+    // actually is even though the head kept moving during the ~0.5-1.5 s of
+    // inference latency (field: "targeting is offset by the time it appears").
+    public Vector3 CapturePosition { get; private set; }
+    public Quaternion CaptureRotation { get; private set; } = Quaternion.identity;
+    public bool HasCapturePose { get; private set; }
+
     Worker m_Worker;
     Tensor<float> m_Input;
     RenderTexture m_InputRT;
@@ -190,6 +198,13 @@ public class Detector : MonoBehaviour
             var src = Source();
             if (src == null || m_Disposed || m_Worker == null) return;   // bail if no source or torn down
             CyberLog.Info("DET", "inference start");
+            var poseCam = Camera.main;
+            if (poseCam != null)
+            {
+                CapturePosition = poseCam.transform.position;
+                CaptureRotation = poseCam.transform.rotation;
+                HasCapturePose = true;
+            }
             LetterboxInto(src);
             TextureConverter.ToTensor(m_InputRT, m_Input, m_Transform);   // [0,1] RGB NCHW
             if (serial >= 0) m_LastInferredSerial = serial;   // frame consumed — safe to commit

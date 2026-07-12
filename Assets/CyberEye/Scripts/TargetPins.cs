@@ -9,9 +9,51 @@ using UnityEngine;
 public sealed class TargetPins : MonoBehaviour
 {
     [SerializeField] TargetOverlay overlay;
-    [SerializeField] float pinDepthMeters = 2.2f;   // no depth sensor: assume arm+ distance
+    [SerializeField] Detector detector;             // capture-time head pose for the ray
+    [SerializeField] float fallbackDepthMeters = 2.2f;
     [SerializeField] float pinLifeSeconds = 90f;
     [SerializeField] int maxPins = 6;
+
+    // Approximate Eye-camera FOV for monocular size-prior depth (precision matters
+    // less than getting VARIED, plausible distances instead of a constant 2.2 m).
+    const float EyeHFovDeg = 72f, EyeVFovDeg = 45f;
+
+    /// <summary>Characteristic largest extent (m) per COCO class — the size prior
+    /// behind depth-from-bbox. depth = extent / (2·tan(angularExtent/2)).</summary>
+    static float ExtentPrior(int id) => id switch
+    {
+        0 => 1.70f,             // person
+        14 => 0.30f,            // bird
+        15 => 0.50f,            // cat
+        16 => 0.80f,            // dog
+        39 => 0.27f,            // bottle
+        40 => 0.22f,            // wine glass
+        41 => 0.12f,            // cup
+        42 => 0.20f, 43 => 0.25f, 44 => 0.18f,   // fork, knife, spoon
+        45 => 0.20f,            // bowl
+        46 => 0.20f, 47 => 0.08f, 48 => 0.15f, 49 => 0.08f,   // banana, apple, sandwich, orange
+        56 => 0.90f,            // chair
+        57 => 2.00f,            // couch
+        58 => 0.50f,            // potted plant
+        59 => 2.00f,            // bed
+        60 => 1.50f,            // dining table
+        62 => 0.90f,            // tv
+        63 => 0.35f,            // laptop
+        64 => 0.11f, 65 => 0.18f, 66 => 0.45f, 67 => 0.15f,   // mouse, remote, keyboard, phone
+        68 => 0.50f, 69 => 0.70f, 70 => 0.30f,                 // microwave, oven, toaster
+        71 => 0.60f, 72 => 1.70f,                              // sink, refrigerator
+        73 => 0.25f, 74 => 0.30f, 75 => 0.30f, 76 => 0.20f,   // book, clock, vase, scissors
+        77 => 0.35f, 78 => 0.25f, 79 => 0.20f,                 // teddy, hair drier, toothbrush
+        _ => 0.5f
+    };
+
+    static float DepthFromBox(int classId, Rect box)
+    {
+        float angDeg = Mathf.Max(box.width * EyeHFovDeg, box.height * EyeVFovDeg);
+        if (angDeg < 0.5f) return -1f;
+        float depth = ExtentPrior(classId) / (2f * Mathf.Tan(angDeg * 0.5f * Mathf.Deg2Rad));
+        return Mathf.Clamp(depth, 0.5f, 7f);
+    }
 
     sealed class Pin
     {
@@ -43,11 +85,29 @@ public sealed class TargetPins : MonoBehaviour
         {
             _lastPinnedTrackId = overlay.LockedPrimaryTrackId;
             Rect box = overlay.LockedPrimaryBox;
+
+            // Ray direction from the bbox center — rebased onto the CAPTURE-time head
+            // pose (the head has moved since that frame; using the current pose put
+            // pins wherever the user happened to be looking when inference finished).
             var ray = _cam.ViewportPointToRay(new Vector3(
                 box.x + box.width * 0.5f,
                 1f - (box.y + box.height * 0.5f),   // detector boxes are top-left origin
                 0f));
-            SpawnPin(ray.origin + ray.direction * pinDepthMeters, overlay.LockedPrimaryClassId);
+            Vector3 origin = ray.origin;
+            Vector3 dir = ray.direction;
+            if (detector != null && detector.HasCapturePose)
+            {
+                Vector3 dirLocal = Quaternion.Inverse(_cam.transform.rotation) * ray.direction;
+                dir = detector.CaptureRotation * dirLocal;
+                origin = detector.CapturePosition;
+            }
+
+            // Depth from the class-size prior (a cup fills the box only up close; a
+            // couch that fills it is far) — no more constant 2.2 m readouts.
+            float depth = DepthFromBox(overlay.LockedPrimaryClassId, box);
+            if (depth <= 0f) depth = fallbackDepthMeters;
+
+            SpawnPin(origin + dir * depth, overlay.LockedPrimaryClassId);
         }
 
         // Billboard + distance tick at ~5 Hz; expire old pins (fade the last 5 s).

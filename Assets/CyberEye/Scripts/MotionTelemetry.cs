@@ -126,8 +126,11 @@ public sealed class MotionTelemetry : MonoBehaviour
 
     void BuildTexts()
     {
-        _tape = MakeText("CompassTape", new Vector2(0, 178), 20, CyberPalette.Dim);
-        _motion = MakeText("MotionTicker", new Vector2(220, 150), 14, CyberPalette.Dim);
+        // Very top edge of the 600x400 canvas, small — the previous spot (y 178,
+        // 20pt) collided with the title/status block and corner ticks (field:
+        // "heading tape is clipped by other text/graphics").
+        _tape = MakeText("CompassTape", new Vector2(0, 189), 15, CyberPalette.Dim);
+        _motion = MakeText("MotionTicker", new Vector2(0, 172), 11, CyberPalette.Dim);
     }
 
     TMP_Text MakeText(string name, Vector2 pos, float size, Color color)

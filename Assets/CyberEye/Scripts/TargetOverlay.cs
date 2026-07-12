@@ -276,6 +276,14 @@ public class TargetOverlay : MonoBehaviour
         float worldH = 2f * distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
         float worldW = worldH * Mathf.Max(cam.aspect, 1f);
 
+        // Reprojection: detections were seen from the CAPTURE-time head pose, but the
+        // head has kept moving during inference latency. Rotating each box direction
+        // from the capture frame into the current camera frame parks the brackets on
+        // the real-world direction of the object instead of trailing the head.
+        Quaternion reproj = detector.HasCapturePose
+            ? Quaternion.Inverse(cam.transform.rotation) * detector.CaptureRotation
+            : Quaternion.identity;
+
         var tracks = _tracker.Tracks;
         ObjectTracker.Track primary = null;
         int primarySlot = -1;
@@ -286,8 +294,17 @@ public class TargetOverlay : MonoBehaviour
                 var tr = tracks[i];
                 if (primary == null || tr.conf > primary.conf) { primary = tr; primarySlot = i; }
                 float cx = tr.box.x + tr.box.width * 0.5f, cy = tr.box.y + tr.box.height * 0.5f;
+                Vector3 dirNow = reproj * new Vector3((cx - 0.5f) * worldW, -(cy - 0.5f) * worldH, distance);
+                if (dirNow.z < 0.15f * distance)
+                {
+                    // Object direction left the view after the head turn — hide rather
+                    // than smear the bracket across the edge.
+                    _boxes[i].enabled = false;
+                    continue;
+                }
+                float k = distance / dirNow.z;
                 var t = _boxes[i].transform;
-                t.localPosition = new Vector3((cx - 0.5f) * worldW, -(cy - 0.5f) * worldH, distance);
+                t.localPosition = new Vector3(dirNow.x * k, dirNow.y * k, distance);
                 t.localRotation = Quaternion.Euler(0f, 180f, 0f);
                 t.localScale = new Vector3(Mathf.Max(0.06f, tr.box.width * worldW), Mathf.Max(0.06f, tr.box.height * worldH), 1f);
 
@@ -320,8 +337,10 @@ public class TargetOverlay : MonoBehaviour
             if (reticleOn)
             {
                 float cx = primary.box.x + primary.box.width * 0.5f, cy = primary.box.y + primary.box.height * 0.5f;
+                Vector3 dirNow = reproj * new Vector3((cx - 0.5f) * worldW, -(cy - 0.5f) * worldH, distance);
+                float k = dirNow.z > 0.15f * distance ? distance / dirNow.z : 1f;
                 var t = _reticle.transform;
-                t.localPosition = new Vector3((cx - 0.5f) * worldW, -(cy - 0.5f) * worldH, distance - 0.02f);
+                t.localPosition = new Vector3(dirNow.x * k, dirNow.y * k, distance - 0.02f);
                 t.localRotation = Quaternion.Euler(0f, 180f, 0f);
                 float s = Mathf.Clamp(Mathf.Min(primary.box.width * worldW, primary.box.height * worldH) * 0.30f, 0.04f, 0.12f);
                 t.localScale = new Vector3(s, s, 1f);

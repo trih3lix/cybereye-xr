@@ -101,6 +101,7 @@ public static class SceneBuilder
         // ticker / head-turn glitch bursts.
         var pins = app.AddComponent<TargetPins>();
         Wire(pins, "overlay", targets);
+        Wire(pins, "detector", det);
         var telemetry = app.AddComponent<MotionTelemetry>();
         Wire(telemetry, "hudCanvas", canvasGO.transform);
         Wire(telemetry, "pins", pins);

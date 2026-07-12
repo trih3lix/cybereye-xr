@@ -24,6 +24,17 @@ public class PerfGuard : MonoBehaviour
                 { detector.inferenceInterval += 2; CyberLog.Warn("PERF", $"fps={_fps:F0} -> throttle detect interval={detector.inferenceInterval}"); }
                 else if (_fps > 55f && detector.inferenceInterval > minInterval)
                 { detector.inferenceInterval -= 1; }
+
+                // Inference LATENCY scales with the per-frame layer budget: at 8
+                // layers the 191-layer net takes ~24 rendered frames (~0.5-1 s), so
+                // detections trail fast head motion. With render headroom, spend it
+                // on bigger slices → results land sooner → targeting is fresher.
+                int wantLayers = _fps > 50f ? 20 : _fps > 38f ? 12 : 8;
+                if (detector.layersPerFrame != wantLayers)
+                {
+                    detector.layersPerFrame = wantLayers;
+                    CyberLog.Info("PERF", $"fps={_fps:F0} -> layersPerFrame={wantLayers}");
+                }
             }
         }
         _thermalT += Time.unscaledDeltaTime;
