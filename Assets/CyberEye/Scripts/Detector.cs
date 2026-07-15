@@ -71,7 +71,7 @@ public class Detector : MonoBehaviour
     Tensor<float> m_Input;
     RenderTexture m_InputRT;
     TextureTransform m_Transform;
-    int m_FrameCount, m_InferCount;
+    int m_FrameCount, m_InferCount, m_RunGen;
     bool m_Busy, m_Ready, m_Disposed;
 
     void Awake()
@@ -104,7 +104,10 @@ public class Detector : MonoBehaviour
             var backend = SystemInfo.supportsComputeShaders ? BackendType.GPUCompute : BackendType.CPU;
             m_Worker = new Worker(runtime, backend);
             m_Input = new Tensor<float>(new TensorShape(1, 3, INPUT, INPUT));
-            m_InputRT = new RenderTexture(INPUT, INPUT, 0, RenderTextureFormat.ARGB32);
+            // Linear read/write like EyeCameraFeed._rgbRT — Default resolves to sRGB in a
+            // Linear-color-space project, and an sRGB-flagged intermediate would re-encode
+            // the feed between the YUV shader and the tensor (reintroducing C-2 downstream).
+            m_InputRT = new RenderTexture(INPUT, INPUT, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
             m_Transform = new TextureTransform();
             m_Ready = true;
             CyberLog.Info("DET", $"init OK model=yolov8n backend={backend} computeShaders={SystemInfo.supportsComputeShaders}");
@@ -129,10 +132,14 @@ public class Detector : MonoBehaviour
         {
             // Watchdog: an inference that never completes (GPU fence hang, lost
             // continuation) would otherwise wedge detection forever with no log.
-            if (Time.unscaledTime - m_BusySince > 12f)
+            // Warmup compiles ~200 kernels and can legitimately exceed 12s on the Beam Pro;
+            // wedging it would double-schedule the shared Worker under a real run.
+            if (Time.unscaledTime - m_BusySince > (m_Warming ? 40f : 12f))
             {
                 CyberLog.Err("DET", $"inference wedged {Time.unscaledTime - m_BusySince:F0}s (lastCompleted={(m_LastCompleted > 0 ? (Time.unscaledTime - m_LastCompleted).ToString("F0") + "s ago" : "never")}); resetting busy flag");
+                m_RunGen++;          // invalidate the in-flight run so a late resume can't double-process
                 m_Busy = false;
+                m_Warming = false;   // a lost warmup must not leave the 40s window latched
                 m_FrameCount = 0;
             }
             return;
@@ -172,10 +179,14 @@ public class Detector : MonoBehaviour
     // stalls for tens of seconds while Sentis lazily compiles shaders — which read as
     // "no detections" in the first field session. Results are discarded (C-3: no
     // phantom boxes).
+    bool m_Warming;
+
     async Awaitable WarmupAsync()
     {
         if (m_Busy || m_Worker == null) return;
         m_Busy = true;
+        m_Warming = true;
+        int gen = ++m_RunGen;   // same protocol as RunInferenceAsync — a watchdog-superseded warmup must not clear a newer run's busy flag
         m_BusySince = Time.unscaledTime;
         try
         {
@@ -186,12 +197,13 @@ public class Detector : MonoBehaviour
             CyberLog.Info("DET", $"warmup complete in {Time.unscaledTime - m_BusySince:F1}s (kernels compiled)");
         }
         catch (Exception e) { CyberLog.Warn("DET", "warmup: " + e.Message); }
-        finally { m_Busy = false; }
+        finally { m_Warming = false; if (gen == m_RunGen) m_Busy = false; }
     }
 
     async Awaitable RunInferenceAsync(long serial = -1)
     {
         m_Busy = true;
+        int gen = ++m_RunGen;   // if the watchdog (or a newer run) bumps m_RunGen, this run's continuation bails
         m_BusySince = Time.unscaledTime;
         try
         {
@@ -225,7 +237,7 @@ public class Detector : MonoBehaviour
                     if (--layerBudget > 0) continue;
                     layerBudget = layersPerFrame;
                     await Awaitable.NextFrameAsync();
-                    if (m_Disposed || m_Worker == null) return;
+                    if (m_Disposed || m_Worker == null || gen != m_RunGen) return;
                 }
             }
             else
@@ -242,14 +254,14 @@ public class Detector : MonoBehaviour
 
             // Fire-and-forget task: OnDisable can dispose the worker/tensors mid-readback, so re-check the
             // disposed flag after every await and bail before touching native resources again.
-            using var boxes   = await boxRef.ReadbackAndCloneAsync();   if (m_Disposed) return;
-            using var classes = await clsRef.ReadbackAndCloneAsync();   if (m_Disposed) return;
-            using var scores  = await scoreRef.ReadbackAndCloneAsync(); if (m_Disposed) return;
+            using var boxes   = await boxRef.ReadbackAndCloneAsync();   if (m_Disposed || gen != m_RunGen) return;
+            using var classes = await clsRef.ReadbackAndCloneAsync();   if (m_Disposed || gen != m_RunGen) return;
+            using var scores  = await scoreRef.ReadbackAndCloneAsync(); if (m_Disposed || gen != m_RunGen) return;
             m_LastCompleted = Time.unscaledTime;
             ParseInto(boxes, classes, scores);
         }
         catch (Exception e) { CyberLog.Err("DET", "inference error: " + e.Message); }
-        finally { m_Busy = false; }
+        finally { if (gen == m_RunGen) m_Busy = false; }   // a superseded run must not clear a newer run's busy flag
     }
 
     // C-4: aspect-preserving letterbox into the square tensor. The old plain Blit
@@ -279,7 +291,7 @@ public class Detector : MonoBehaviour
         if (m_ScaleRT == null || m_ScaleRT.width != innerW || m_ScaleRT.height != innerH)
         {
             if (m_ScaleRT != null) { m_ScaleRT.Release(); Destroy(m_ScaleRT); }   // Release frees the surface; the wrapper leaks without Destroy
-            m_ScaleRT = new RenderTexture(innerW, innerH, 0, RenderTextureFormat.ARGB32);
+            m_ScaleRT = new RenderTexture(innerW, innerH, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);   // match m_InputRT — no implicit sRGB hop
             // The gray pad border only depends on the inner dims — paint it once here
             // instead of a full-target GL.Clear on every inference (the inner region
             // is fully overwritten by the CopyTexture each call anyway).

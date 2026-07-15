@@ -34,6 +34,11 @@ public class TargetOverlay : MonoBehaviour
     int _lastInfer = -1, _panelId = -1;
     HudController _hud;          // event feed (optional, found once)
 
+    // WP-3: gaze-dwell HOLD — look steadily at a target to freeze its dossier; look away to release.
+    const float GazeConeDeg = 4f, GazeExitDeg = 9f, DwellSeconds = 1.2f;
+    int _heldId = -1, _dwellCandidate = -1;
+    float _dwellTime;
+
     // dossier panel (TMP)
     TMP_Text _dTitle, _dBody, _dFoot;
     RawImage _thumb;                 // last-lock snapshot of the target (field request)
@@ -45,6 +50,11 @@ public class TargetOverlay : MonoBehaviour
     Coroutine _typing, _sweeping;
     string _bodyFull = "";
     float _footTick;
+
+    // WP-3 follow-up: dwell-progress ring — converges on the gazed target as the hold charges
+    // (reuses the burst shader mode 2 with _Lock = 1-progress: wide+faint → tight+bright).
+    Renderer _dwellRing;
+    Material _dwellRingMat;
 
     // R2: one-shot lock burst (Update-driven, no coroutine) + dossier micro-glitches
     Renderer _burst;
@@ -78,7 +88,7 @@ public class TargetOverlay : MonoBehaviour
         _cam = Camera.main;
         _hud = FindFirstObjectByType<HudController>();
         var sh = Shader.Find("CyberEye/TargetBox");
-        if (sh == null) CyberLog.Err("GLOW", "CyberEye/TargetBox shader missing");
+        if (sh == null) { CyberLog.Err("GLOW", "CyberEye/TargetBox shader missing"); sh = Shader.Find("Sprites/Default"); }   // fallback so runtime Materials are never null (no NRE cascade in Update)
         _boxes = new Renderer[maxBoxes];
         _mats = new Material[maxBoxes];
         _lock = new float[maxBoxes];
@@ -122,6 +132,20 @@ public class TargetOverlay : MonoBehaviour
             _burst.receiveShadows = false;
             _burst.enabled = false;
         }
+        // dwell-progress ring (same ring mode as the burst, driven by dwell charge)
+        {
+            var q = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            q.name = "DwellRing";
+            var col = q.GetComponent<Collider>(); if (col) Destroy(col);
+            _dwellRingMat = new Material(sh);
+            _dwellRingMat.SetFloat("_Mode", 2f);
+            _dwellRingMat.SetColor("_Color", CyberPalette.Locked);
+            _dwellRing = q.GetComponent<Renderer>();
+            _dwellRing.material = _dwellRingMat;
+            _dwellRing.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            _dwellRing.receiveShadows = false;
+            _dwellRing.enabled = false;
+        }
         BuildDossierPanel();
         // AppBootController expects Camera.main can be NULL at Start (XR rig not resolved yet). Parent now
         // if it is up; otherwise defer + retry in Update so the overlays never orphan at the world origin.
@@ -136,6 +160,7 @@ public class TargetOverlay : MonoBehaviour
         if (_reticleMat != null) Destroy(_reticleMat);
         if (_thumbRT != null) { _thumbRT.Release(); _thumbRT = null; }
         if (_burstMat != null) Destroy(_burstMat);
+        if (_dwellRingMat != null) Destroy(_dwellRingMat);
     }
 
     // Parent the boxes + dossier to the head once Camera.main resolves (mirrors HudOverlayController's
@@ -150,6 +175,7 @@ public class TargetOverlay : MonoBehaviour
             if (_boxes[i] != null) _boxes[i].transform.SetParent(p, false);
         if (_reticle != null) _reticle.transform.SetParent(p, false);
         if (_burst != null) _burst.transform.SetParent(p, false);
+        if (_dwellRing != null) _dwellRing.transform.SetParent(p, false);
         if (_dossierRoot != null) _dossierRoot.SetParent(p, false);
         _parented = true;
         CyberLog.Info("GLOW", "overlay parented to head camera");
@@ -273,8 +299,11 @@ public class TargetOverlay : MonoBehaviour
         if (_cam == null) _parented = false;            // camera lost / never resolved -> (re)acquire below
         if (!_parented) { TryParentToCamera(); if (!_parented) return; }
         var cam = _cam;
-        float worldH = 2f * distance * Mathf.Tan(cam.fieldOfView * 0.5f * Mathf.Deg2Rad);
-        float worldW = worldH * Mathf.Max(cam.aspect, 1f);
+        // WP-4a: size the placement plane from the EYE camera's FOV (~72x45), not the display
+        // camera's (cam.fieldOfView ~46-50). Detections live in the Eye image; the narrower display
+        // FOV compressed brackets toward center and drifted them at the edges.
+        float worldW = 2f * distance * Mathf.Tan(TargetPins.EyeHFovDeg * 0.5f * Mathf.Deg2Rad);
+        float worldH = 2f * distance * Mathf.Tan(TargetPins.EyeVFovDeg * 0.5f * Mathf.Deg2Rad);
 
         // Reprojection: detections were seen from the CAPTURE-time head pose, but the
         // head has kept moving during inference latency. Rotating each box direction
@@ -293,7 +322,13 @@ public class TargetOverlay : MonoBehaviour
             {
                 var tr = tracks[i];
                 if (primary == null || tr.conf > primary.conf) { primary = tr; primarySlot = i; }
-                float cx = tr.box.x + tr.box.width * 0.5f, cy = tr.box.y + tr.box.height * 0.5f;
+                // WP-4b: glide the drawn box toward the latest measurement (framerate-independent) so
+                // it slides to each sparse detection instead of snapping. No velocity extrapolation
+                // into the gap (overshoot risk when an object stops between the Eye's ~multi-second frames).
+                if (!tr.hasDraw) { tr.draw = tr.box; tr.hasDraw = true; }
+                else tr.draw = LerpRect(tr.draw, tr.box, 1f - Mathf.Exp(-10f * Time.deltaTime));
+                Rect db2 = tr.draw;
+                float cx = db2.x + db2.width * 0.5f, cy = db2.y + db2.height * 0.5f;
                 Vector3 dirNow = reproj * new Vector3((cx - 0.5f) * worldW, -(cy - 0.5f) * worldH, distance);
                 if (dirNow.z < 0.15f * distance)
                 {
@@ -306,7 +341,7 @@ public class TargetOverlay : MonoBehaviour
                 var t = _boxes[i].transform;
                 t.localPosition = new Vector3(dirNow.x * k, dirNow.y * k, distance);
                 t.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                t.localScale = new Vector3(Mathf.Max(0.06f, tr.box.width * worldW), Mathf.Max(0.06f, tr.box.height * worldH), 1f);
+                t.localScale = new Vector3(Mathf.Max(0.06f, db2.width * worldW), Mathf.Max(0.06f, db2.height * worldH), 1f);
 
                 // acquire→lock animation: target state from track age, smoothed per slot
                 float target = (Time.time - tr.firstSeen) >= lockDelay ? 1f : 0f;
@@ -317,6 +352,59 @@ public class TargetOverlay : MonoBehaviour
                 _boxes[i].enabled = true;
             }
             else { _boxes[i].enabled = false; _lock[i] = 0f; }
+        }
+
+        // WP-3: gaze-dwell HOLD. Dwell your gaze (head-forward) on an in-view target ~1.2s to freeze its
+        // dossier so you can read it; look away past a wider exit cone to release. Pure head-gaze vs the box
+        // directions already placed above — no menu, no controller binding (gaze is the proven input here).
+        int gazeSlot = -1; float bestAng = GazeConeDeg;
+        for (int i = 0; i < _boxes.Length; i++)
+        {
+            if (!_boxes[i].enabled) continue;
+            float ang = Vector3.Angle(cam.transform.forward, _boxes[i].transform.position - cam.transform.position);
+            if (ang < bestAng) { bestAng = ang; gazeSlot = i; }
+        }
+        int gazeId = (gazeSlot >= 0 && gazeSlot < tracks.Count) ? tracks[gazeSlot].id : -1;
+        if (gazeId >= 0 && gazeId == _dwellCandidate) _dwellTime += Time.deltaTime;
+        else { _dwellCandidate = gazeId; _dwellTime = 0f; }
+        bool charging = gazeSlot >= 0 && _heldId != gazeId && _dwellTime > 0.1f;
+        if (charging)   // "charging" tint so the dwell is discoverable
+            _mats[gazeSlot].SetColor("_Color", Color.Lerp(CyberPalette.ForClass(tracks[gazeSlot].classId), CyberPalette.Locked, Mathf.Clamp01(_dwellTime / DwellSeconds)));
+        if (_dwellRing != null)
+        {
+            _dwellRing.enabled = charging;
+            if (charging)
+            {
+                var bt = _boxes[gazeSlot].transform;
+                _dwellRing.transform.localPosition = bt.localPosition + new Vector3(0f, 0f, -0.015f);
+                _dwellRing.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                float rs = Mathf.Max(0.07f, Mathf.Min(bt.localScale.x, bt.localScale.y) * 0.9f);
+                _dwellRing.transform.localScale = new Vector3(rs, rs, 1f);
+                // shader mode 2: _Lock=1 → wide+dark, _Lock=0 → tight+bright — inverted progress
+                _dwellRingMat.SetFloat("_Lock", 1f - Mathf.Clamp01(_dwellTime / DwellSeconds));
+            }
+        }
+        // Gate the hold on the optical lock ramp too: without it a hold could engage ~0.2s
+        // before the reticle/world-pin threshold (_lock>0.85), announcing a target the rest
+        // of the HUD doesn't agree is locked yet.
+        if (gazeId >= 0 && _dwellTime >= DwellSeconds && _heldId != gazeId && _lock[gazeSlot] > 0.85f)
+        {
+            _heldId = gazeId;
+            _hud?.PushEvent($"TGT-{_heldId:000} HELD :: GAZE LOCK", CyberPalette.Locked);
+            CyberLog.Info("GAZE", $"hold TGT-{_heldId}");
+        }
+        if (_heldId >= 0)
+        {
+            int heldSlot = -1;
+            for (int i = 0; i < tracks.Count && i < _boxes.Length; i++) if (tracks[i].id == _heldId) { heldSlot = i; break; }
+            bool alive = heldSlot >= 0 && _boxes[heldSlot].enabled;
+            float heldAng = alive ? Vector3.Angle(cam.transform.forward, _boxes[heldSlot].transform.position - cam.transform.position) : 999f;
+            if (!alive || heldAng > GazeExitDeg)
+            {
+                CyberLog.Info("GAZE", $"release TGT-{_heldId} (alive={alive} ang={heldAng:F0})");
+                _heldId = -1;
+            }
+            else { primary = tracks[heldSlot]; primarySlot = heldSlot; }   // hold: dossier + reticle stay on this target
         }
 
         // reticle rides the locked primary's center
@@ -336,13 +424,14 @@ public class TargetOverlay : MonoBehaviour
             _reticle.enabled = reticleOn;
             if (reticleOn)
             {
-                float cx = primary.box.x + primary.box.width * 0.5f, cy = primary.box.y + primary.box.height * 0.5f;
+                Rect pb = primary.hasDraw ? primary.draw : primary.box;
+                float cx = pb.x + pb.width * 0.5f, cy = pb.y + pb.height * 0.5f;
                 Vector3 dirNow = reproj * new Vector3((cx - 0.5f) * worldW, -(cy - 0.5f) * worldH, distance);
                 float k = dirNow.z > 0.15f * distance ? distance / dirNow.z : 1f;
                 var t = _reticle.transform;
                 t.localPosition = new Vector3(dirNow.x * k, dirNow.y * k, distance - 0.02f);
                 t.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                float s = Mathf.Clamp(Mathf.Min(primary.box.width * worldW, primary.box.height * worldH) * 0.30f, 0.04f, 0.12f);
+                float s = Mathf.Clamp(Mathf.Min(pb.width * worldW, pb.height * worldH) * 0.30f, 0.04f, 0.12f);
                 t.localScale = new Vector3(s, s, 1f);
                 _reticleMat.SetColor("_Color", CyberPalette.Locked);
             }
@@ -548,6 +637,10 @@ public class TargetOverlay : MonoBehaviour
         if (_thumbFrame != null) _thumbFrame.enabled = true;
         if (!_thumbLogged) { _thumbLogged = true; CyberLog.Info("GLOW", $"thumb snapshot live (src={src.width}x{src.height} box={tr.box.width:F2}x{tr.box.height:F2})"); }
     }
+
+    static Rect LerpRect(Rect a, Rect b, float t) => new Rect(
+        Mathf.Lerp(a.x, b.x, t), Mathf.Lerp(a.y, b.y, t),
+        Mathf.Lerp(a.width, b.width, t), Mathf.Lerp(a.height, b.height, t));
 
     void PruneProfiles()
     {

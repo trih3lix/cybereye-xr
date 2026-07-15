@@ -7,6 +7,9 @@ Shader "CyberEye/YUVtoRGB"
         _MainTex ("Y plane", 2D) = "black" {}
         _UTex ("U plane", 2D) = "black" {}
         _VTex ("V plane", 2D) = "black" {}
+        // C-2: detector-input channel order. 1 = legacy BGR placement (pre-review default,
+        // kept to avoid a blind regression); 0 = true RGB. Settle on-device via feed_dump.png.
+        _SwapRB ("Swap R/B (1=legacy BGR, 0=RGB)", Float) = 1
     }
     SubShader
     {
@@ -26,6 +29,7 @@ Shader "CyberEye/YUVtoRGB"
             TEXTURE2D(_MainTex); SAMPLER(sampler_MainTex);
             TEXTURE2D(_UTex);    SAMPLER(sampler_UTex);
             TEXTURE2D(_VTex);    SAMPLER(sampler_VTex);
+            float _SwapRB;
 
             Varyings vert (Attributes IN)
             {
@@ -44,8 +48,13 @@ Shader "CyberEye/YUVtoRGB"
                 half r = y + 1.4022h * v - 0.7011h;
                 half g = y - 0.3456h * u - 0.7145h * v + 0.53005h;
                 half b = y + 1.771h  * u - 0.8855h;
-                half3 rgb = half3(b, g, r);
-                rgb = pow(saturate(rgb), 2.2h);   // gamma -> linear (project is Linear color space)
+                // Detector-input feed (never displayed): YOLOv8 wants sRGB-encoded RGB in [0,1].
+                // C-2 fix (a): removed the pow(2.2) gamma->linear that crushed the mid-tones the
+                // network keys on (0.5 -> 0.22). The RT is now created Linear (EyeCameraFeed), so
+                // these sRGB-encoded values reach the Sentis tensor unchanged.
+                // C-2 fix (b): channel order is A/B-testable via _SwapRB — legacy BGR stays the
+                // default until feed_dump.png confirms the Eye's plane order on device.
+                half3 rgb = saturate(lerp(half3(r, g, b), half3(b, g, r), _SwapRB));
                 return half4(rgb, 1.0h);
             }
             ENDHLSL

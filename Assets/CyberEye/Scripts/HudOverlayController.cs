@@ -18,7 +18,12 @@ public class HudOverlayController : MonoBehaviour
         if (overlayQuad != null)
         {
             var sh = Shader.Find("CyberEye/HudOverlay");
-            if (sh == null) CyberLog.Err("HUD", "CyberEye/HudOverlay shader missing (stripped?)");
+            if (sh == null)
+            {
+                CyberLog.Err("HUD", "CyberEye/HudOverlay shader missing (stripped?)");
+                overlayQuad.enabled = false;   // don't leave a raw default-material quad over the optical view
+                return;
+            }
             _mat = new Material(sh);
             overlayQuad.material = _mat;
         }

@@ -10,8 +10,10 @@ public class ObjectTracker
         public int id, classId;
         public string label;
         public float conf;
-        public Rect box;          // normalized 0..1, top-left origin (camera image space)
+        public Rect box;          // normalized 0..1, top-left origin (camera image space) — latest measurement
         public float lastSeen, firstSeen;
+        public Rect draw;         // WP-4b: smoothed box for display; glides toward `box` each render frame
+        public bool hasDraw;      // seeded on the first display tick
     }
 
     readonly List<Track> _tracks = new();

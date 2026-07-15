@@ -34,8 +34,11 @@ Shader "CyberEye/HudOverlay"
 
                 // bright cyan scan-sweep moving down
                 float sweepY = frac(t * 0.15);
-                float line = smoothstep(0.012, 0.0, abs(uv.y - sweepY));
-                col += half3(0.15, 0.9, 1.0) * line * 0.55 * k;
+                // 'line' is a RESERVED word in GLSL ES — naming a variable `line` compiled on the
+                // editor platform but failed the GLES3 variant at build time, so the whole overlay
+                // fell back to the magenta error shader on-device (the app forces GLES3).
+                float sweepLine = smoothstep(0.012, 0.0, abs(uv.y - sweepY));
+                col += half3(0.15, 0.9, 1.0) * sweepLine * 0.55 * k;
 
                 // neon edge frame (vignette-glow)
                 float edge = smoothstep(0.40, 0.80, d);

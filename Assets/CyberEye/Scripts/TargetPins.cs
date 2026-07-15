@@ -16,7 +16,7 @@ public sealed class TargetPins : MonoBehaviour
 
     // Approximate Eye-camera FOV for monocular size-prior depth (precision matters
     // less than getting VARIED, plausible distances instead of a constant 2.2 m).
-    const float EyeHFovDeg = 72f, EyeVFovDeg = 45f;
+    public const float EyeHFovDeg = 72f, EyeVFovDeg = 45f;   // shared source of truth (TargetOverlay reads these too)
 
     /// <summary>Characteristic largest extent (m) per COCO class — the size prior
     /// behind depth-from-bbox. depth = extent / (2·tan(angularExtent/2)).</summary>
@@ -89,17 +89,26 @@ public sealed class TargetPins : MonoBehaviour
             // Ray direction from the bbox center — rebased onto the CAPTURE-time head
             // pose (the head has moved since that frame; using the current pose put
             // pins wherever the user happened to be looking when inference finished).
-            var ray = _cam.ViewportPointToRay(new Vector3(
-                box.x + box.width * 0.5f,
-                1f - (box.y + box.height * 0.5f),   // detector boxes are top-left origin
-                0f));
-            Vector3 origin = ray.origin;
-            Vector3 dir = ray.direction;
+            // WP-4a: build the ray from the Eye camera's intrinsics (its ~72x45 FOV), NOT the
+            // display camera's (ViewportPointToRay uses cam.fieldOfView ~46-50, which mis-scaled the
+            // direction). u/v are normalized image coords in [-1,1]; detector boxes are top-left
+            // origin, so +v (down in the image) maps to -y (down in the world).
+            float u = (box.x + box.width * 0.5f - 0.5f) * 2f;
+            float v = (box.y + box.height * 0.5f - 0.5f) * 2f;
+            Vector3 dirLocal = new Vector3(
+                 u * Mathf.Tan(EyeHFovDeg * 0.5f * Mathf.Deg2Rad),
+                -v * Mathf.Tan(EyeVFovDeg * 0.5f * Mathf.Deg2Rad),
+                 1f);
+            Vector3 origin, dir;
             if (detector != null && detector.HasCapturePose)
             {
-                Vector3 dirLocal = Quaternion.Inverse(_cam.transform.rotation) * ray.direction;
-                dir = detector.CaptureRotation * dirLocal;
                 origin = detector.CapturePosition;
+                dir = (detector.CaptureRotation * dirLocal).normalized;
+            }
+            else
+            {
+                origin = _cam.transform.position;
+                dir = (_cam.transform.rotation * dirLocal).normalized;
             }
 
             // Depth from the class-size prior (a cup fills the box only up close; a
@@ -141,6 +150,33 @@ public sealed class TargetPins : MonoBehaviour
 
     void SpawnPin(Vector3 worldPos, int classId)
     {
+        // Declutter (field report: CANINE 02 / FELINE 03 labels stacking into each other).
+        // A same-class pin within ~0.9m is almost certainly the same object re-locked under
+        // a new track id — refresh it in place instead of stacking a twin label on top.
+        foreach (var p in _pins)
+        {
+            if (p.ClassId == classId && Vector3.Distance(p.Go.transform.position, worldPos) < 0.9f)
+            {
+                p.Go.transform.position = worldPos;
+                p.Born = Time.time;
+                CyberLog.Info("PIN", $"world pin '{p.Name}' refreshed at {worldPos}");
+                return;
+            }
+        }
+        // Different-class neighbor: step the new label up a rung until it clears every pin
+        // within lateral reach (labels read ~0.35m tall at room distances).
+        for (int guard = 0; guard < 4; guard++)
+        {
+            bool bumped = false;
+            foreach (var p in _pins)
+            {
+                Vector3 d = p.Go.transform.position - worldPos;
+                float dy = Mathf.Abs(d.y); d.y = 0f;
+                if (d.magnitude < 0.6f && dy < 0.35f) { worldPos.y += 0.4f; bumped = true; break; }
+            }
+            if (!bumped) break;
+        }
+
         while (_pins.Count >= maxPins) { Destroy(_pins[0].Go); _pins.RemoveAt(0); }
 
         _serial++;

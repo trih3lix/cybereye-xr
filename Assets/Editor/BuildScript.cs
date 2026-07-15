@@ -33,8 +33,9 @@ public static class BuildScript
         PlayerSettings.SetMobileMTRendering(BuildTargetGroup.Android, false);                        // avoid composition-layer tearing
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
+        PlayerSettings.Android.targetSdkVersion = AndroidSdkVersions.AndroidApiLevel34;   // C-12: explicit target (Play requires 34+; Beam Pro = Android 14 / API 34)
         EnsureTmpShadersIncluded();
-        Debug.Log("[CYBEREYE-BUILD] hardened: GLES3-only, mobileMT=off, IL2CPP/ARM64, TMP SDF shaders always-included");
+        Debug.Log("[CYBEREYE-BUILD] hardened: GLES3-only, mobileMT=off, IL2CPP/ARM64, targetSDK=34, TMP SDF shaders always-included");
     }
 
     // TMP text created at runtime would otherwise have its SDF shader stripped -> white-box glyphs.

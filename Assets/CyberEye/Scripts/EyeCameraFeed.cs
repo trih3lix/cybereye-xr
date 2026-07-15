@@ -29,8 +29,11 @@ public class EyeCameraFeed : MonoBehaviour
     {
         var sh = Shader.Find("CyberEye/YUVtoRGB");
         if (sh == null) CyberLog.Err("EYE", "CyberEye/YUVtoRGB shader missing");
-        _yuvMat = new Material(sh);
-        _rgbRT = new RenderTexture(1280, 720, 0, RenderTextureFormat.ARGB32);
+        _yuvMat = sh != null ? new Material(sh) : null;   // never construct Material(null); OnFrame no-ops when null
+        // C-2: Linear RT so the YUV->RGB shader's sRGB-encoded output reaches the Sentis tensor
+        // unchanged. An sRGB (default) RT would re-linearize on sample and crush the mid-tones YOLO
+        // needs — the same bug the shader's removed pow(2.2) caused. Detector-input only (not shown).
+        _rgbRT = new RenderTexture(1280, 720, 0, RenderTextureFormat.ARGB32, RenderTextureReadWrite.Linear);
         _cam = XREALRGBCameraTexture.CreateSingleton();
         _cam.OnRGBCameraUpdate += OnFrame;
         CyberLog.Info("EYE", "raw-path init (detector feed only); requesting CAMERA");
@@ -188,6 +191,7 @@ public class EyeCameraFeed : MonoBehaviour
     {
         if (_cam != null) _cam.OnRGBCameraUpdate -= OnFrame;
         StopCaptureSafe();
-        if (_rgbRT != null) _rgbRT.Release();
+        if (_rgbRT != null) { _rgbRT.Release(); Destroy(_rgbRT); _rgbRT = null; }   // Release frees the surface; Destroy frees the wrapper (partial C-11)
+        if (_yuvMat != null) { Destroy(_yuvMat); _yuvMat = null; }
     }
 }
