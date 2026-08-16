@@ -46,3 +46,15 @@ scripts/dev-loop.ps1 -Release -Serial 192.168.0.102:5555 -WifiIp 192.168.0.102 #
 - `Assets/Editor/` — BuildScript, SceneBuilder (programmatic scene), IconSetup.
 - `scripts/` — build/deploy/verify PowerShell loop + `gen_icon.py`.
 - Docs: [SUBMISSION_CHECKLIST.md](SUBMISSION_CHECKLIST.md), [VISUAL_CHECKLIST.md](VISUAL_CHECKLIST.md), [docs/XREAL_API_REFERENCE.md](docs/XREAL_API_REFERENCE.md).
+
+## License
+
+**AGPL-3.0** — see [LICENSE](LICENSE).
+
+The repo bundles `Assets/CyberEye/Models/yolov8n.onnx` (YOLOv8n, © Ultralytics), which is
+itself **AGPL-3.0**; licensing this project AGPL-3.0 keeps redistribution clean. If you want
+CyberEye under a permissive license, swap the detector for an Apache-2.0 model such as YOLOX
+and relicense the remaining first-party code accordingly.
+
+The XREAL SDK is **not** included and is not covered by this license — it is license-gated at
+[developer.xreal.com](https://developer.xreal.com) and must be restored separately (see above).
